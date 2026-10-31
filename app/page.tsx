@@ -987,6 +987,10 @@ export default function HomePage() {
     requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
   }
 
+  useEffect(() => {
+    carouselRef.current?.scrollTo({ left: 0, behavior: 'instant' });
+  }, [filter, query, viewMode]);
+
   function scrollProducts(direction: -1 | 1) {
     const carousel = carouselRef.current;
     if (!carousel) return;
@@ -1247,29 +1251,22 @@ export default function HomePage() {
               </div>
             </section>
 
-            <section className="devices-section" id="devices">
+            <section className="devices-section" id="devices" aria-labelledby="devices-title">
               <div className="section-heading carousel-heading">
                 <div>
-                  <h2>我的设备</h2>
+                  <h2 id="devices-title">我的设备</h2>
                 </div>
                 <div className="carousel-actions">
                   <button className="details-link" onClick={() => changeView('details')}>
                     查看全部详情
                     <ChevronRight />
                   </button>
-                  <div className="carousel-buttons" aria-label="滚动设备列表">
-                    <button aria-label="向左滚动" onClick={() => scrollProducts(-1)}>
-                      <ChevronLeft />
-                    </button>
-                    <button aria-label="向右滚动" onClick={() => scrollProducts(1)}>
-                      <ChevronRight />
-                    </button>
-                  </div>
+
                 </div>
               </div>
               <div className="controls-row overview-controls">
-                <div className="segmented" role="tablist" aria-label="物品状态">
-                  {(['持有', '全部', '归档'] as const).map((item) => (
+                <div className="period-switch device-status-switch" role="tablist" aria-label="物品状态">
+                  {(['全部', '持有', '归档'] as const).map((item) => (
                     <button
                       key={item}
                       role="tab"
@@ -1277,7 +1274,7 @@ export default function HomePage() {
                       className={filter === item ? 'selected' : ''}
                       onClick={() => setFilter(item)}
                     >
-                      {item}
+                      {item === '持有' ? '使用中' : item === '归档' ? '已归档' : '全部'}
                       <span>
                         {item === '全部'
                           ? devices.length
@@ -1332,7 +1329,6 @@ export default function HomePage() {
                             {device.status === '归档' && <i>已归档</i>}
                           </span>
                           <span className="product-copy">
-                            <span className="product-category">{device.category}</span>
                             <strong>{device.name}</strong>
                             <small>
                               {device.purchaseDate
@@ -1371,11 +1367,20 @@ export default function HomePage() {
                   <div className="empty-state">
                     <Search />
                     <h3>没有找到物品</h3>
-                    <p>换个关键词，或添加一件新物品。</p>
                     <Button onClick={openNew}><Plus />添加物品</Button>
                   </div>
                 )}
               </div>
+              {visibleDevices.length > 1 && <div className="devices-footer">
+                  <div className="carousel-buttons" aria-label="滚动设备列表">
+                    <button aria-label="向左滚动" onClick={() => scrollProducts(-1)}>
+                      <ChevronLeft />
+                    </button>
+                    <button aria-label="向右滚动" onClick={() => scrollProducts(1)}>
+                      <ChevronRight />
+                    </button>
+                  </div>
+              </div>}
             </section>
           </div>
         ) : (
