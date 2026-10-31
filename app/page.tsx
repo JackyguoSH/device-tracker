@@ -226,8 +226,9 @@ const initialDevices: Device[] = [
     warrantyEnd: '',
     notes: '',
     tags: '',
-    additional: 3392,
-    additionalDetail: 'AppleCare+: ¥848.00（2022–2025，每年续保）',
+    additional: 4240,
+    additionalDetail:
+      'AppleCare+: ¥848.00（2022–2025，每年续保）; AppleCare+: ¥848.00 (2026-09-17)',
     archivedPrice: 0,
     archivedDate: '',
     archivedWay: '',
@@ -537,11 +538,27 @@ export default function HomePage() {
           ? savedDevices
           : [iphoneAirDevice, ...savedDevices];
         setDevices(
-          mergedDevices.map((device) =>
-            device.id === iphoneAirDevice.id && !device.tags
-              ? { ...device, tags: '深空黑色' }
-              : device,
-          ),
+          mergedDevices.map((device) => {
+            if (device.id === iphoneAirDevice.id && !device.tags) {
+              return { ...device, tags: '深空黑色' };
+            }
+            if (
+              device.id === 'iphone-14-pro' &&
+              !device.additionalDetail.includes('2026-09-17')
+            ) {
+              return {
+                ...device,
+                additional:
+                  device.additional === 3392
+                    ? 4240
+                    : device.additional === 4240
+                      ? 4240
+                      : device.additional + 848,
+                additionalDetail: `${device.additionalDetail}${device.additionalDetail ? '; ' : ''}AppleCare+: ¥848.00 (2026-09-17)`,
+              };
+            }
+            return device;
+          }),
         );
       } catch {
         /* bundled data remains */
