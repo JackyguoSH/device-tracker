@@ -1089,8 +1089,6 @@ export default function HomePage() {
             devices={devices.map(device => ({ ...device, image: getProductImage(device), usageEnd: timelineEndDate(device) || today }))}
             activeSection={viewMode === 'overview' ? sectionTarget || 'timeline' : null}
             onNavigate={section => changeView(viewMode === 'overview' && sectionTarget === section ? 'home' : 'overview', viewMode === 'overview' && sectionTarget === section ? null : section, true)}
-            onEdit={id => { const device = devices.find(item => item.id === id); if (device) openEdit(device); }}
-            onAdd={openNew}
             renderSection={section => (
               <div className="dashboard-view portal-panel">
                 {section === 'timeline' && (
