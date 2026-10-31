@@ -2521,3 +2521,25 @@ footer {
 }
 
 .cost-history-interaction { touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+
+.device-view-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+}
+.device-status-switch button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+.device-status-switch button span { font-size: 0.85em; font-variant-numeric: tabular-nums; opacity: 0.65; }
+.timeline-sort[data-slot='native-select-wrapper'] { width: 180px; }
+.timeline-sort select { font-size: 12px; height: 36px; }
+.device-view-controls + .lifecycle-layout { margin-top: 20px; }
+.lifecycle-layout[hidden] { display: none; }
+.device-view-empty { padding: 32px 0; color: var(--muted-foreground); font-size: 14px; text-align: center; }
+@media (max-width: 520px) {
+  .device-view-controls { gap: 10px; }
+  .device-status-switch { max-width: 100%; }
+  .device-status-switch button { min-width: 0; padding-inline: 11px; }
+  .timeline-sort[data-slot='native-select-wrapper'] { width: 100%; }
+}

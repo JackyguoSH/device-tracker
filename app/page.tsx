@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { CostHistory } from '@/components/cost-history';
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 
 type DeviceStatus = '持有' | '归档';
 type DeviceCategory = '电脑' | '手机' | '平板' | '影音' | '穿戴' | '其他';
@@ -523,6 +524,8 @@ export default function HomePage() {
   const [viewMode, setViewMode] = useState<'overview' | 'details'>('overview');
   const [costPeriod, setCostPeriod] = useState<'day' | 'year'>('day');
   const [timelineZoom, setTimelineZoom] = useState(1);
+  const [chartStatus, setChartStatus] = useState<'全部' | DeviceStatus>('全部');
+  const [timelineSort, setTimelineSort] = useState('status');
   const [timelineWidth, setTimelineWidth] = useState(0);
   const [timelineTooltip, setTimelineTooltip] = useState<{ text: string; left: number; top: number } | null>(null);
   const timelineViewport = useRef<HTMLDivElement>(null);
@@ -535,7 +538,7 @@ export default function HomePage() {
       timelineViewport.current.scrollLeft = 0;
     }
     setTimelineTooltip(null);
-  }, [timelineZoom, viewMode]);
+  }, [timelineZoom, viewMode, chartStatus, timelineSort]);
 
   useEffect(() => {
     const hide = () => setTimelineTooltip(null);
@@ -787,8 +790,27 @@ export default function HomePage() {
     }
     return today;
   };
-  const timelineDevices = [...datedDevices].sort((a, b) =>
-    a.purchaseDate.localeCompare(b.purchaseDate),
+  const matchesChartStatus = (device: Device) => chartStatus === '全部' || device.status === chartStatus;
+  const timelineDevices = datedDevices.filter(matchesChartStatus).sort((a, b) => {
+    const dateOrder = a.purchaseDate.localeCompare(b.purchaseDate);
+    if (timelineSort === 'newest') return -dateOrder;
+    if (timelineSort === 'oldest') return dateOrder;
+    if (timelineSort === 'name') return a.name.localeCompare(b.name, 'zh-CN');
+    if (timelineSort === 'longest' || timelineSort === 'shortest') {
+      const durationOrder = ageInDays(b.purchaseDate, timelineEndDate(b) || today) - ageInDays(a.purchaseDate, timelineEndDate(a) || today);
+      return (timelineSort === 'longest' ? durationOrder : -durationOrder) || dateOrder;
+    }
+    return Number(a.status === '归档') - Number(b.status === '归档') || dateOrder;
+  });
+  const chartStatusControl = (label: string) => (
+    <div className="period-switch device-status-switch" role="group" aria-label={label}>
+      {(['全部', '持有', '归档'] as const).map(status => (
+        <button key={status} className={chartStatus === status ? 'selected' : ''} aria-pressed={chartStatus === status} onClick={() => setChartStatus(status)}>
+          {status === '持有' ? '使用中' : status === '归档' ? '已归档' : '全部'}
+          <span>{status === '全部' ? devices.length : status === '持有' ? active.length : archived.length}</span>
+        </button>
+      ))}
+    </div>
   );
   const averageDailyCost = (device: Device) => {
     const endDate = timelineEndDate(device) || today;
@@ -797,7 +819,7 @@ export default function HomePage() {
       Math.max(1, ageInDays(device.purchaseDate, endDate))
     );
   };
-  const costRanking = [...devices]
+  const costRanking = devices.filter(matchesChartStatus)
     .map((device) => ({
       device,
       dailyCost: averageDailyCost(device),
@@ -1044,7 +1066,19 @@ export default function HomePage() {
                   </div>
                 </div>
               </header>
-              <div className="lifecycle-layout">
+              <div className="device-view-controls">
+                {chartStatusControl('时间轴设备状态')}
+                <NativeSelect className="timeline-sort" value={timelineSort} aria-label="时间轴排序" onChange={event => setTimelineSort(event.target.value)}>
+                  <NativeSelectOption value="status">按状态分组</NativeSelectOption>
+                  <NativeSelectOption value="oldest">购入时间：从早到晚</NativeSelectOption>
+                  <NativeSelectOption value="newest">购入时间：从晚到早</NativeSelectOption>
+                  <NativeSelectOption value="longest">使用时长：从长到短</NativeSelectOption>
+                  <NativeSelectOption value="shortest">使用时长：从短到长</NativeSelectOption>
+                  <NativeSelectOption value="name">按名称</NativeSelectOption>
+                </NativeSelect>
+              </div>
+              {timelineDevices.length === 0 && <div className="device-view-empty">暂无{chartStatus === '归档' ? '已归档' : chartStatus === '持有' ? '使用中' : ''}设备</div>}
+              <div className="lifecycle-layout" hidden={timelineDevices.length === 0}>
                 <div className="lifecycle-label-column">
                   <span className="lifecycle-column-head">设备</span>
                   {timelineDevices.map((device) => (
@@ -1183,6 +1217,8 @@ export default function HomePage() {
                   </div>
                 </div>
               </header>
+              <div className="device-view-controls">{chartStatusControl('成本排名设备状态')}</div>
+              {costRanking.length === 0 && <div className="device-view-empty">暂无{chartStatus === '归档' ? '已归档' : chartStatus === '持有' ? '使用中' : ''}设备</div>}
               <div className="ranking-list">
                 {costRanking.map((item, index) => (
                   <button
