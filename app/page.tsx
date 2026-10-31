@@ -730,15 +730,16 @@ export default function HomePage() {
     (_, index) => timelineStartYear + index,
   );
   const axisWidth = timelineWidth * timelineZoom;
-  let previousTick = -Infinity;
-  const visibleTimelineYears = timelineYears.filter((year, index) => {
+  const pixelsPerYear = axisWidth * (365.2425 * 86400000) / Math.max(1, timelineEnd - timelineStart);
+  const yearStep = [1, 2, 5, 10, 20, 50, 100].find(step => pixelsPerYear * step >= 64) || 100;
+  const intermediateYears = timelineYears.filter(year => {
     const pixel = timelinePosition(`${year}-01-01`) / 100 * axisWidth;
-    if (index === 0 || (pixel - previousTick >= 55 && axisWidth - pixel >= 48)) {
-      previousTick = pixel;
-      return true;
-    }
-    return false;
+    return year > timelineStartYear && year % yearStep === 0 && pixel >= 64 && axisWidth - pixel >= 48;
   });
+  // On a compact overview, the two endpoints communicate the range clearly.
+  // Only add intermediate ticks when there is room for a regular sequence.
+  const endpointsOnly = (timelineZoom === 1 && timelineWidth < 280) || intermediateYears.length < 2;
+  const visibleTimelineYears = endpointsOnly ? [timelineStartYear] : [timelineStartYear, ...intermediateYears];
   const timelineEndDate = (device: Device) => {
     if (device.name.trim().toLowerCase() === 'airpods pro') {
       const successor = devices
