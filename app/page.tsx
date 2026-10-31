@@ -533,6 +533,7 @@ export default function HomePage() {
   const [timelineTooltip, setTimelineTooltip] = useState<{ text: string; left: number; top: number } | null>(null);
   const timelineViewport = useRef<HTMLDivElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const preservePortalScroll = useRef(false);
   const [carouselRef, carouselApi] = useEmblaCarousel({ align: 'start', containScroll: 'trimSnaps', skipSnaps: false });
   const devicesRef = useRef(devices);
 
@@ -541,7 +542,7 @@ export default function HomePage() {
       timelineViewport.current.scrollLeft = 0;
     }
     setTimelineTooltip(null);
-  }, [timelineZoom, viewMode, chartStatus, timelineSort]);
+  }, [timelineZoom, viewMode, sectionTarget, chartStatus, timelineSort]);
 
   useEffect(() => {
     const hide = () => setTimelineTooltip(null);
@@ -568,7 +569,7 @@ export default function HomePage() {
     const observer = new ResizeObserver(([entry]) => setTimelineWidth(entry.contentRect.width));
     observer.observe(element);
     return () => observer.disconnect();
-  }, [viewMode]);
+  }, [viewMode, sectionTarget]);
 
   useEffect(() => {
     const saved = localStorage.getItem('wuji-devices-v1');
@@ -985,20 +986,22 @@ export default function HomePage() {
     setDraft((current) => ({ ...current, photo }));
   }
 
-  function changeView(next: 'home' | 'overview' | 'details', section: string | null = null) {
+  function changeView(next: 'home' | 'overview' | 'details', section: string | null = null, preserveScroll = false) {
+    preservePortalScroll.current = preserveScroll;
     const target = next === 'overview' ? section || 'timeline' : null;
     const hash = next === 'home' ? '' : `#${next === 'details' ? 'details' : target}`;
     if (window.location.hash !== hash) window.history.pushState(null, '', `${window.location.pathname}${window.location.search}${hash}`);
     setSectionTarget(target);
     setViewMode(next);
-    if (next === viewMode) {
-      if (target) document.getElementById(target)?.scrollIntoView({ block: 'start', behavior: 'instant' });
+    if (next === viewMode && !preserveScroll) {
+      if (target) (document.getElementById(`fold-${target}`) || document.getElementById(target))?.scrollIntoView({ block: 'start', behavior: 'instant' });
       else window.scrollTo({ top: 0, behavior: 'instant' });
     }
   }
 
   useEffect(() => {
     const restoreView = () => {
+      preservePortalScroll.current = false;
       const destination = window.location.hash.slice(1);
       if (['timeline', 'costs', 'devices'].includes(destination)) {
         setViewMode('overview');
@@ -1018,8 +1021,12 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    if (preservePortalScroll.current) {
+      preservePortalScroll.current = false;
+      return;
+    }
     const frame = requestAnimationFrame(() => {
-      const target = sectionTarget && document.getElementById(sectionTarget);
+      const target = sectionTarget && (document.getElementById(`fold-${sectionTarget}`) || document.getElementById(sectionTarget));
       if (target) target.scrollIntoView({ block: 'start', behavior: 'instant' });
       else window.scrollTo({ top: 0, behavior: 'instant' });
     });
@@ -1029,7 +1036,7 @@ export default function HomePage() {
   useEffect(() => {
     carouselApi?.reInit();
     carouselApi?.scrollTo(0, true);
-  }, [filter, query, viewMode, carouselApi]);
+  }, [filter, query, viewMode, sectionTarget, carouselApi]);
 
   function scrollProducts(direction: -1 | 1) {
     if (direction > 0) carouselApi?.scrollNext();
@@ -1077,24 +1084,16 @@ export default function HomePage() {
       </header>
 
       <div className="content-wrap">
-        {viewMode === 'home' ? (
+        {viewMode !== 'details' ? (
           <DevicePortal
             devices={devices.map(device => ({ ...device, image: getProductImage(device), usageEnd: timelineEndDate(device) || today }))}
-            today={today}
-            onNavigate={section => changeView('overview', section)}
+            activeSection={viewMode === 'overview' ? sectionTarget || 'timeline' : null}
+            onNavigate={section => changeView(viewMode === 'overview' && sectionTarget === section ? 'home' : 'overview', viewMode === 'overview' && sectionTarget === section ? null : section, true)}
             onEdit={id => { const device = devices.find(item => item.id === id); if (device) openEdit(device); }}
             onAdd={openNew}
-          />
-        ) : viewMode === 'overview' ? (
-          <div className="dashboard-view">
-            <nav className="overview-navigation" aria-label="统计与设备">
-              <button className="back-link" onClick={() => changeView('home')}><ChevronLeft />首页</button>
-              <div className="period-switch" role="group" aria-label="查看模块">
-                {([['timeline', '时间轴'], ['costs', '成本'], ['devices', '设备']] as const).map(([id, label]) => (
-                  <button key={id} className={(sectionTarget || 'timeline') === id ? 'selected' : ''} aria-pressed={(sectionTarget || 'timeline') === id} onClick={() => changeView('overview', id)}>{label}</button>
-                ))}
-              </div>
-            </nav>
+            renderSection={section => (
+              <div className="dashboard-view portal-panel">
+                {section === 'timeline' && (
             <section
               className="lifecycle-section"
               id="timeline"
@@ -1240,6 +1239,8 @@ export default function HomePage() {
               {timelineTooltip && <div className="timeline-date-tooltip" role="tooltip" style={{ left: timelineTooltip.left, top: timelineTooltip.top }}>{timelineTooltip.text}</div>}
             </section>
 
+                )}
+                {section === 'costs' && <>
             <CostHistory devices={devices.map(device => ({ ...device, usageEnd: timelineEndDate(device) || today }))} today={today} />
 
             <section className="cost-ranking-section" aria-labelledby="cost-ranking-title">
@@ -1305,6 +1306,8 @@ export default function HomePage() {
               </div>
             </section>
 
+                </>}
+                {section === 'devices' && (
             <section className="devices-section" id="devices" aria-labelledby="devices-title">
               <div className="section-heading carousel-heading">
                 <div>
@@ -1438,12 +1441,15 @@ export default function HomePage() {
                   </div>
               </div>}
             </section>
-          </div>
+                )}
+              </div>
+            )}
+          />
         ) : (
           <div className="details-view">
             <header className="details-header">
-              <button className="back-link" onClick={() => changeView('overview')}>
-                <ChevronLeft />返回概览
+              <button className="back-link" onClick={() => changeView('overview', 'devices')}>
+                <ChevronLeft />返回设备
               </button>
               <div>
                 <div>
@@ -1553,10 +1559,7 @@ export default function HomePage() {
           </div>
         )}
 
-        <footer>
-          数据仅保存在这台设备的浏览器中 · 最近整理于{' '}
-          {today ? dateFormatter.format(new Date(`${today}T00:00:00`)) : '今天'}
-        </footer>
+        <footer>数据保存在当前浏览器</footer>
       </div>
       <Dialog open={editorOpen} onOpenChange={setEditorOpen}>
         <DialogContent className="device-dialog sm:max-w-[620px]">
