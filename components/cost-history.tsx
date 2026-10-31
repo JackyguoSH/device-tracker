@@ -115,7 +115,7 @@ export function CostHistory({ devices, today }: {
     ? [Math.max(0.01, min * 0.8), Math.max(1, max * 1.1)]
     : [min >= 0 ? Math.max(0, min - Math.max(0.5, (max - min) * 0.12)) : min - Math.max(0.5, (max - min) * 0.12), max + Math.max(0.5, (max - min) * 0.12)];
   return (
-    <section className="cost-history-section" aria-labelledby="cost-history-title">
+    <section id="costs" className="cost-history-section" aria-labelledby="cost-history-title">
       <header className="cost-history-header">
         <div>
           <h2 id="cost-history-title">每日平均成本</h2>

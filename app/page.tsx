@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { CostHistory } from '@/components/cost-history';
+import { DevicePortal } from '@/components/device-portal';
 import useEmblaCarousel from 'embla-carousel-react';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 
@@ -522,7 +523,8 @@ export default function HomePage() {
   const [draft, setDraft] = useState<Device>(emptyDevice);
   const [isDark, setIsDark] = useState(false);
   const [today, setToday] = useState('');
-  const [viewMode, setViewMode] = useState<'overview' | 'details'>('overview');
+  const [viewMode, setViewMode] = useState<'home' | 'overview' | 'details'>('home');
+  const [sectionTarget, setSectionTarget] = useState<string | null>(null);
   const [costPeriod, setCostPeriod] = useState<'day' | 'year'>('day');
   const [timelineZoom, setTimelineZoom] = useState(1);
   const [chartStatus, setChartStatus] = useState<'全部' | DeviceStatus>('全部');
@@ -983,10 +985,46 @@ export default function HomePage() {
     setDraft((current) => ({ ...current, photo }));
   }
 
-  function changeView(next: 'overview' | 'details') {
+  function changeView(next: 'home' | 'overview' | 'details', section: string | null = null) {
+    const target = next === 'overview' ? section || 'timeline' : null;
+    const hash = next === 'home' ? '' : `#${next === 'details' ? 'details' : target}`;
+    if (window.location.hash !== hash) window.history.pushState(null, '', `${window.location.pathname}${window.location.search}${hash}`);
+    setSectionTarget(target);
     setViewMode(next);
-    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    if (next === viewMode) {
+      if (target) document.getElementById(target)?.scrollIntoView({ block: 'start', behavior: 'instant' });
+      else window.scrollTo({ top: 0, behavior: 'instant' });
+    }
   }
+
+  useEffect(() => {
+    const restoreView = () => {
+      const destination = window.location.hash.slice(1);
+      if (['timeline', 'costs', 'devices'].includes(destination)) {
+        setViewMode('overview');
+        setSectionTarget(destination);
+      } else {
+        setViewMode(destination === 'details' ? 'details' : 'home');
+        setSectionTarget(null);
+      }
+    };
+    restoreView();
+    window.addEventListener('popstate', restoreView);
+    window.addEventListener('hashchange', restoreView);
+    return () => {
+      window.removeEventListener('popstate', restoreView);
+      window.removeEventListener('hashchange', restoreView);
+    };
+  }, []);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      const target = sectionTarget && document.getElementById(sectionTarget);
+      if (target) target.scrollIntoView({ block: 'start', behavior: 'instant' });
+      else window.scrollTo({ top: 0, behavior: 'instant' });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [viewMode, sectionTarget]);
 
   useEffect(() => {
     carouselApi?.reInit();
@@ -1002,7 +1040,7 @@ export default function HomePage() {
     <main className="min-h-screen bg-background text-foreground">
       <header className="site-navigation">
         <div className="navigation-inner">
-          <span className="navigation-title">我的物品</span>
+          <button className="navigation-title" onClick={() => changeView('home')} aria-label="返回首页">我的物品</button>
           <div className="navigation-actions">
             <input
               ref={fileInput}
@@ -1013,12 +1051,13 @@ export default function HomePage() {
             />
             <button
               className="navigation-button"
+              aria-label="导入物品"
               onClick={() => fileInput.current?.click()}
             >
               <Upload />
               <span>导入</span>
             </button>
-            <button className="navigation-button" onClick={exportCsv}>
+            <button className="navigation-button" aria-label="导出物品" onClick={exportCsv}>
               <Download />
               <span>导出</span>
             </button>
@@ -1038,10 +1077,27 @@ export default function HomePage() {
       </header>
 
       <div className="content-wrap">
-        {viewMode === 'overview' ? (
+        {viewMode === 'home' ? (
+          <DevicePortal
+            devices={devices.map(device => ({ ...device, image: getProductImage(device), usageEnd: timelineEndDate(device) || today }))}
+            today={today}
+            onNavigate={section => changeView('overview', section)}
+            onEdit={id => { const device = devices.find(item => item.id === id); if (device) openEdit(device); }}
+            onAdd={openNew}
+          />
+        ) : viewMode === 'overview' ? (
           <div className="dashboard-view">
+            <nav className="overview-navigation" aria-label="统计与设备">
+              <button className="back-link" onClick={() => changeView('home')}><ChevronLeft />首页</button>
+              <div className="period-switch" role="group" aria-label="查看模块">
+                {([['timeline', '时间轴'], ['costs', '成本'], ['devices', '设备']] as const).map(([id, label]) => (
+                  <button key={id} className={(sectionTarget || 'timeline') === id ? 'selected' : ''} aria-pressed={(sectionTarget || 'timeline') === id} onClick={() => changeView('overview', id)}>{label}</button>
+                ))}
+              </div>
+            </nav>
             <section
               className="lifecycle-section"
+              id="timeline"
               aria-labelledby="lifecycle-title"
             >
               <header className="lifecycle-header">
