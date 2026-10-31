@@ -108,7 +108,7 @@ const initialDevices: Device[] = [
   },
   {
     id: 'homepod-mini-2024',
-    name: 'HomePod mini',
+    name: 'HomePod mini_R',
     status: '持有',
     category: '影音',
     purchasePrice: 0,
@@ -181,7 +181,7 @@ const initialDevices: Device[] = [
   },
   {
     id: 'homepod-mini-2020',
-    name: 'HomePod mini',
+    name: 'HomePod mini_L',
     status: '持有',
     category: '影音',
     purchasePrice: 749,
@@ -577,6 +577,10 @@ export default function HomePage() {
           : [iphoneAirDevice, ...savedDevices];
         setDevices(
           mergedDevices.map((device) => {
+            if (device.name.trim() === 'HomePod mini') {
+              if (device.id === 'homepod-mini-2020') return { ...device, name: 'HomePod mini_L' };
+              if (device.id === 'homepod-mini-2024') return { ...device, name: 'HomePod mini_R' };
+            }
             if (device.id === iphoneAirDevice.id && !device.tags) {
               return { ...device, tags: '深空黑色' };
             }
