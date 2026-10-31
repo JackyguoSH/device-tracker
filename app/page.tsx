@@ -1005,9 +1005,9 @@ export default function HomePage() {
             >
               {isDark ? <Sun /> : <Moon />}
             </button>
-            <Button className="add-button" onClick={openNew}>
+            <Button className="add-button" aria-label="添加物品" onClick={openNew}>
               <Plus />
-              添加物品
+              <span>添加物品</span>
             </Button>
           </div>
         </div>

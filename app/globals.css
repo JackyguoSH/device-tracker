@@ -1139,10 +1139,14 @@ footer {
   .add-button {
     width: 30px;
     padding: 0;
-    font-size: 0;
+    gap: 0;
+  }
+  .add-button span {
+    display: none;
   }
   .add-button svg {
     width: 14px;
+    height: 14px;
   }
   .content-wrap {
     padding-top: 28px;
