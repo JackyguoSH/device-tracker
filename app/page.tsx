@@ -739,7 +739,6 @@ export default function HomePage() {
     }
     return false;
   });
-  const iphoneForHistory = devices.find(device => device.id === 'iphone-14-pro');
   const timelineEndDate = (device: Device) => {
     if (device.name.trim().toLowerCase() === 'airpods pro') {
       const successor = devices
@@ -1094,7 +1093,7 @@ export default function HomePage() {
               </div>
             </section>
 
-            {iphoneForHistory && <CostHistory device={iphoneForHistory} today={timelineEndDate(iphoneForHistory) || today} />}
+            <CostHistory devices={devices.map(device => ({ ...device, usageEnd: timelineEndDate(device) || today }))} today={today} />
 
             <section className="cost-ranking-section" aria-labelledby="cost-ranking-title">
               <header className="ranking-header">
