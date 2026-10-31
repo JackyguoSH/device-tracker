@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { FormEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Archive,
   ChevronLeft,
@@ -524,10 +524,37 @@ export default function HomePage() {
   const [costPeriod, setCostPeriod] = useState<'day' | 'year'>('day');
   const [timelineZoom, setTimelineZoom] = useState(1);
   const [timelineWidth, setTimelineWidth] = useState(0);
+  const [timelineTooltip, setTimelineTooltip] = useState<{ text: string; left: number; top: number } | null>(null);
   const timelineViewport = useRef<HTMLDivElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
   const devicesRef = useRef(devices);
+
+  useLayoutEffect(() => {
+    if (timelineZoom === 1 && timelineViewport.current) {
+      timelineViewport.current.scrollLeft = 0;
+    }
+    setTimelineTooltip(null);
+  }, [timelineZoom, viewMode]);
+
+  useEffect(() => {
+    const hide = () => setTimelineTooltip(null);
+    window.addEventListener('scroll', hide, true);
+    window.addEventListener('resize', hide);
+    return () => {
+      window.removeEventListener('scroll', hide, true);
+      window.removeEventListener('resize', hide);
+    };
+  }, []);
+
+  const showTimelineTooltip = (element: HTMLElement, text: string) => {
+    const rect = element.getBoundingClientRect();
+    setTimelineTooltip({
+      text,
+      left: Math.max(12, Math.min(rect.left, window.innerWidth - 332)),
+      top: Math.max(80, rect.top - 10),
+    });
+  };
 
   useEffect(() => {
     const element = timelineViewport.current;
@@ -1025,6 +1052,14 @@ export default function HomePage() {
                 <div
                   ref={timelineViewport}
                   className={`lifecycle-middle-scroll ${timelineZoom > 1 ? 'is-scrollable' : ''}`}
+                  tabIndex={timelineZoom > 1 ? 0 : -1}
+                  role="region"
+                  aria-label="时间轴日期范围"
+                  onScroll={event => {
+                    if (timelineZoom === 1 && event.currentTarget.scrollLeft !== 0) {
+                      event.currentTarget.scrollLeft = 0;
+                    }
+                  }}
                 >
                   <div
                     className="lifecycle-middle"
@@ -1060,14 +1095,28 @@ export default function HomePage() {
                       device.purchaseDate,
                       endDate || device.purchaseDate,
                     );
+                    const tooltipText = `${startLabel} — ${endDisplayLabel} · ${durationDays} 天`;
                     return (
                       <div className="lifecycle-track-row" key={device.id}>
                         <div className="lifecycle-track">
                           <span
                             className={device.status === '归档' ? 'archived' : ''}
                             tabIndex={0}
+                            role="button"
                             aria-label={`${device.name}：${startLabel} — ${endDisplayLabel}，共${durationDays}天`}
-                            data-tooltip={`${startLabel} — ${endDisplayLabel} · ${durationDays} 天`}
+                            onPointerEnter={event => {
+                              if (event.pointerType === 'mouse') showTimelineTooltip(event.currentTarget, tooltipText);
+                            }}
+                            onPointerLeave={() => setTimelineTooltip(null)}
+                            onFocus={event => showTimelineTooltip(event.currentTarget, tooltipText)}
+                            onBlur={() => setTimelineTooltip(null)}
+                            onClick={event => showTimelineTooltip(event.currentTarget, tooltipText)}
+                            onKeyDown={event => {
+                              if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault();
+                                showTimelineTooltip(event.currentTarget, tooltipText);
+                              }
+                            }}
                             style={{
                               left: `${start}%`,
                               width: `${Math.max(0.8, end - start)}%`,
@@ -1092,6 +1141,7 @@ export default function HomePage() {
                   ))}
                 </div>
               </div>
+              {timelineTooltip && <div className="timeline-date-tooltip" role="tooltip" style={{ left: timelineTooltip.left, top: timelineTooltip.top }}>{timelineTooltip.text}</div>}
             </section>
 
             <CostHistory devices={devices.map(device => ({ ...device, usageEnd: timelineEndDate(device) || today }))} today={today} />
