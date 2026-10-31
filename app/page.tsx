@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { CostHistory } from '@/components/cost-history';
+import useEmblaCarousel from 'embla-carousel-react';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 
 type DeviceStatus = '持有' | '归档';
@@ -530,7 +531,7 @@ export default function HomePage() {
   const [timelineTooltip, setTimelineTooltip] = useState<{ text: string; left: number; top: number } | null>(null);
   const timelineViewport = useRef<HTMLDivElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
-  const carouselRef = useRef<HTMLDivElement>(null);
+  const [carouselRef, carouselApi] = useEmblaCarousel({ align: 'start', containScroll: 'trimSnaps', skipSnaps: false });
   const devicesRef = useRef(devices);
 
   useLayoutEffect(() => {
@@ -988,16 +989,13 @@ export default function HomePage() {
   }
 
   useEffect(() => {
-    carouselRef.current?.scrollTo({ left: 0, behavior: 'instant' });
-  }, [filter, query, viewMode]);
+    carouselApi?.reInit();
+    carouselApi?.scrollTo(0, true);
+  }, [filter, query, viewMode, carouselApi]);
 
   function scrollProducts(direction: -1 | 1) {
-    const carousel = carouselRef.current;
-    if (!carousel) return;
-    carousel.scrollBy({
-      left: direction * Math.max(280, carousel.clientWidth * 0.82),
-      behavior: 'smooth',
-    });
+    if (direction > 0) carouselApi?.scrollNext();
+    else carouselApi?.scrollPrev();
   }
 
   return (
@@ -1297,6 +1295,7 @@ export default function HomePage() {
               </div>
 
               <div className="product-carousel" ref={carouselRef}>
+                <div className="product-carousel-track">
                 {visibleDevices.length ? (
                   visibleDevices.map((device) => {
                     const total = device.purchasePrice + device.additional;
@@ -1370,6 +1369,7 @@ export default function HomePage() {
                     <Button onClick={openNew}><Plus />添加物品</Button>
                   </div>
                 )}
+              </div>
               </div>
               {visibleDevices.length > 1 && <div className="devices-footer">
                   <div className="carousel-buttons" aria-label="滚动设备列表">

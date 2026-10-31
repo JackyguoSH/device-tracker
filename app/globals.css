@@ -2572,8 +2572,20 @@ footer {
   margin: 0;
   width: 100%;
   padding-bottom: 0;
-  grid-auto-columns: 260px;
+  display: block;
+  overflow: hidden;
+  scroll-behavior: auto;
+  scroll-snap-type: none;
+}
+.product-carousel-track {
+  display: flex;
   gap: 20px;
+  touch-action: pan-y pinch-zoom;
+}
+.devices-section .product-carousel-track > .product-card {
+  flex: 0 0 260px;
+  min-width: 0;
+  scroll-snap-align: none;
 }
 .devices-section .product-card {
   border-right: 1px solid var(--border);
@@ -2600,8 +2612,7 @@ footer {
 .devices-footer { margin-top: 20px; display: flex; justify-content: flex-end; }
 .devices-footer .carousel-buttons { gap: 2px; padding: 3px; border-radius: 999px; background: var(--secondary); }
 .devices-footer .carousel-buttons button { width: 32px; height: 32px; background: var(--card); }
-.devices-section .empty-state { width: 100%; grid-column: 1 / -1; padding: 32px 0; }
-.devices-section .product-carousel:has(> .empty-state) { grid-auto-flow: row; grid-template-columns: 1fr; }
+.devices-section .product-carousel-track > .empty-state { width: 100%; min-width: 0; flex: 0 0 100%; padding: 32px 0; }
 @media (max-width: 760px) {
   .dashboard-view .devices-section { padding: 28px 24px 22px; }
   .devices-section .section-heading h2 { font-size: 23px; }
@@ -2613,7 +2624,8 @@ footer {
   .devices-section .details-link { font-size: 11px; }
   .devices-section .overview-controls { gap: 12px; margin-bottom: 20px; }
   .devices-section .search-field { width: 100%; }
-  .devices-section .product-carousel { grid-auto-columns: 100%; gap: 16px; }
+  .devices-section .product-carousel-track { gap: 16px; }
+  .devices-section .product-carousel-track > .product-card { flex-basis: 100%; }
   .devices-section .product-card { padding-right: 0; border-right: 0; }
   .devices-section .product-stage { height: 180px; }
 }
