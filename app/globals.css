@@ -1644,8 +1644,8 @@ footer {
 .lifecycle-section > header {
   max-width: 680px;
 }
-.lifecycle-section h2 {
-  margin: 10px 0 7px;
+.lifecycle-section h1 {
+  margin: 0;
   font-size: 28px;
   line-height: 1.15;
   font-weight: 650;
@@ -2045,7 +2045,7 @@ footer {
   gap: 24px;
 }
 .ranking-header h2 {
-  margin: 10px 0 7px;
+  margin: 0;
   font-size: 28px;
   line-height: 1.15;
   font-weight: 650;
@@ -2395,4 +2395,124 @@ footer {
     align-items: flex-start;
     flex-direction: column;
   }
+}
+
+/* Cost history shares the dashboard's quiet surfaces and segmented controls. */
+.cost-history-section {
+  min-width: 0;
+  margin-top: 22px;
+  padding: 32px 40px 24px;
+  border-radius: 26px;
+  background: var(--card);
+}
+.cost-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.cost-history-header h2 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 650;
+  letter-spacing: -0.04em;
+}
+.cost-history-device {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+.cost-history-current {
+  margin: 22px 0 6px;
+  font-variant-numeric: tabular-nums;
+}
+.cost-history-current strong { font-size: 32px; font-weight: 600; letter-spacing: -0.04em; }
+.cost-history-current > span { margin-left: 3px; color: var(--muted-foreground); font-size: 14px; }
+.cost-history-chart[data-slot='chart'] { height: 285px; width: 100%; aspect-ratio: auto; }
+.cost-history-caption {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 8px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.cost-history-tooltip {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--popover-foreground);
+  background: var(--popover);
+  font-size: 12px;
+  box-shadow: 0 4px 18px rgb(0 0 0 / 8%);
+  font-variant-numeric: tabular-nums;
+}
+.cost-history-tooltip strong { font-size: 16px; font-weight: 600; }
+.lifecycle-year-axis i { font-variant-numeric: tabular-nums; }
+
+@media (max-width: 760px) {
+  .lifecycle-section, .cost-ranking-section, .cost-history-section {
+    padding: 24px 20px;
+    border-radius: 22px;
+  }
+  .lifecycle-header {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
+  .lifecycle-section h1, .ranking-header h2, .cost-history-header h2 { font-size: 23px; }
+  .lifecycle-layout { margin-top: 24px; }
+  .lifecycle-column-head, .lifecycle-year-axis i { font-size: 11px; }
+  .lifecycle-label-column > button { font-size: 12px; }
+  .lifecycle-duration-column > strong { font-size: 11px; white-space: nowrap; }
+  .lifecycle-label-column > button, .lifecycle-duration-column > strong, .lifecycle-track-row {
+    height: 50px;
+    flex-basis: 50px;
+  }
+  .timeline-zoom button { width: 32px; height: 32px; }
+  .timeline-zoom > div { height: 38px; }
+  .timeline-zoom strong { font-size: 12px; min-width: 35px; }
+  .period-switch button { height: 34px; font-size: 12px; padding-inline: 12px; }
+  .portfolio-daily-cost > span, .portfolio-daily-cost small { font-size: 12px; }
+  .portfolio-daily-cost > strong { font-size: 22px; }
+  .ranking-name strong, .ranking-value { font-size: 13px; }
+  .ranking-name small, .ranking-index, .ranking-value small { font-size: 11px; }
+  .ranking-name { flex-wrap: wrap; gap: 2px 6px; }
+  .ranking-row { min-height: 54px; }
+  .cost-history-chart[data-slot='chart'] { height: 260px; }
+  .navigation-button, .navigation-button.icon-only { width: 38px; height: 40px; }
+  .add-button { width: 38px; height: 38px; }
+  .controls-row { flex-wrap: wrap; gap: 12px; }
+}
+
+@media (max-width: 520px) {
+  .content-wrap { padding-top: 18px; }
+  .lifecycle-section, .cost-ranking-section, .cost-history-section { padding: 22px 16px 20px; }
+  .lifecycle-layout { grid-template-columns: 100px minmax(0, 1fr) 60px; gap: 8px; }
+  .lifecycle-label-column > button { white-space: normal; line-height: 1.3; }
+  .lifecycle-section h1 { font-size: 21px; }
+  .timeline-zoom > div { gap: 0; }
+  .timeline-zoom button { width: 28px; height: 30px; }
+  .timeline-zoom > div { height: 36px; }
+  .timeline-zoom strong { min-width: 32px; }
+  .cost-history-header { align-items: flex-start; flex-wrap: wrap; }
+  .cost-history-header h2 { font-size: 22px; }
+  .cost-history-caption { flex-direction: column; }
+  .ranking-row { grid-template-columns: 20px minmax(0, 1fr) 76px; gap: 8px; }
+  .ranking-summary { gap: 10px; }
+  .portfolio-daily-cost { padding-right: 10px; }
+  .ranking-list { margin-top: 20px; }
+  .navigation-actions { gap: 0; }
+  .navigation-title { white-space: nowrap; }
+  .product-carousel { grid-auto-columns: min(300px, 82vw); }
+}
+
+@media (max-width: 360px) {
+  .lifecycle-layout { grid-template-columns: 86px minmax(0, 1fr) 54px; gap: 6px; }
+  .lifecycle-duration-column > strong { font-size: 10px; }
+  .lifecycle-section, .cost-ranking-section, .cost-history-section { padding-inline: 12px; }
 }

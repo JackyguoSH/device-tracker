@@ -14,7 +14,7 @@ const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === 'seatbelt';
 
 const localBindingConfig = {
   name: 'device-tracker',
-  compatibility_date: '2026-10-31',
+  compatibility_date: '2026-05-15',
   main: 'vinext/server/fetch-handler',
   compatibility_flags: ['nodejs_compat'],
   d1_databases: d1

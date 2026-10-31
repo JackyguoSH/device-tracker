@@ -25,6 +25,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { CostHistory } from '@/components/cost-history';
 
 type DeviceStatus = '持有' | '归档';
 type DeviceCategory = '电脑' | '手机' | '平板' | '影音' | '穿戴' | '其他';
@@ -522,9 +523,19 @@ export default function HomePage() {
   const [viewMode, setViewMode] = useState<'overview' | 'details'>('overview');
   const [costPeriod, setCostPeriod] = useState<'day' | 'year'>('day');
   const [timelineZoom, setTimelineZoom] = useState(1);
+  const [timelineWidth, setTimelineWidth] = useState(0);
+  const timelineViewport = useRef<HTMLDivElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
   const devicesRef = useRef(devices);
+
+  useEffect(() => {
+    const element = timelineViewport.current;
+    if (!element) return;
+    const observer = new ResizeObserver(([entry]) => setTimelineWidth(entry.contentRect.width));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [viewMode]);
 
   useEffect(() => {
     const saved = localStorage.getItem('wuji-devices-v1');
@@ -693,9 +704,6 @@ export default function HomePage() {
 
   const active = devices.filter((device) => device.status === '持有');
   const archived = devices.filter((device) => device.status === '归档');
-  const missingPrices = active.filter(
-    (device) => device.purchasePrice === 0,
-  ).length;
   const datedDevices = devices.filter((device) => device.purchaseDate);
   const timelineStartYear = Math.min(
     ...datedDevices.map((device) => Number(device.purchaseDate.slice(0, 4))),
@@ -721,6 +729,17 @@ export default function HomePage() {
     { length: timelineEndYear - timelineStartYear + 1 },
     (_, index) => timelineStartYear + index,
   );
+  const axisWidth = timelineWidth * timelineZoom;
+  let previousTick = -Infinity;
+  const visibleTimelineYears = timelineYears.filter((year, index) => {
+    const pixel = timelinePosition(`${year}-01-01`) / 100 * axisWidth;
+    if (index === 0 || (pixel - previousTick >= 55 && axisWidth - pixel >= 48)) {
+      previousTick = pixel;
+      return true;
+    }
+    return false;
+  });
+  const iphoneForHistory = devices.find(device => device.id === 'iphone-14-pro');
   const timelineEndDate = (device: Device) => {
     if (device.name.trim().toLowerCase() === 'airpods pro') {
       const successor = devices
@@ -966,28 +985,15 @@ export default function HomePage() {
       <div className="content-wrap">
         {viewMode === 'overview' ? (
           <div className="dashboard-view">
-            <header className="page-header">
-              <div>
-                <h1>我的物品</h1>
-                <p>使用时间、平均成本，以及每一件设备的完整记录</p>
-              </div>
-              <span>{active.length} 件正在使用</span>
-            </header>
-
             <section
               className="lifecycle-section"
               aria-labelledby="lifecycle-title"
             >
               <header className="lifecycle-header">
                 <div>
-                  <span className="eyebrow">使用时间轴</span>
-                  <h2 id="lifecycle-title">从购入到今天，一眼看完所有设备。</h2>
-                  <p>
-                    悬停时间线查看具体日期；放大后可横向滚动，查看更短的使用周期。
-                  </p>
+                  <h1 id="lifecycle-title">使用时间轴</h1>
                 </div>
                 <div className="timeline-zoom" aria-label="时间轴缩放">
-                  <span>缩放</span>
                   <div>
                     <button
                       aria-label="缩小时间轴"
@@ -1017,17 +1023,18 @@ export default function HomePage() {
                   ))}
                 </div>
                 <div
+                  ref={timelineViewport}
                   className={`lifecycle-middle-scroll ${timelineZoom > 1 ? 'is-scrollable' : ''}`}
                 >
                   <div
                     className="lifecycle-middle"
                     style={{
                       width: `${timelineZoom * 100}%`,
-                      minWidth: timelineZoom > 1 ? '420px' : '100%',
+                      minWidth: '100%',
                     }}
                   >
                     <div className="lifecycle-year-axis" aria-hidden="true">
-                      {timelineYears.map((year, index) => (
+                      {visibleTimelineYears.map((year, index) => (
                         <i
                           className={index === 0 ? 'is-first' : ''}
                           key={year}
@@ -1059,7 +1066,7 @@ export default function HomePage() {
                           <span
                             className={device.status === '归档' ? 'archived' : ''}
                             tabIndex={0}
-                            aria-label={`${device.name}：${startLabel}至${endDisplayLabel}，共${durationDays}天`}
+                            aria-label={`${device.name}：${startLabel} — ${endDisplayLabel}，共${durationDays}天`}
                             data-tooltip={`${startLabel} — ${endDisplayLabel} · ${durationDays} 天`}
                             style={{
                               left: `${start}%`,
@@ -1085,21 +1092,14 @@ export default function HomePage() {
                   ))}
                 </div>
               </div>
-              <aside className="record-note">
-                <span>{missingPrices} 件缺少购入价格</span>
-                <span>
-                  {devices.filter((device) => !device.warrantyEnd).length}{' '}
-                  件尚未记录保修截止日期
-                </span>
-              </aside>
             </section>
+
+            {iphoneForHistory && <CostHistory device={iphoneForHistory} today={timelineEndDate(iphoneForHistory) || today} />}
 
             <section className="cost-ranking-section" aria-labelledby="cost-ranking-title">
               <header className="ranking-header">
                 <div>
-                  <span className="eyebrow">平均使用成本</span>
-                  <h2 id="cost-ranking-title">每一件设备，平均花了多少。</h2>
-                  <p>按净成本折算；归档和被替代设备只计算到停止使用的日期。</p>
+                  <h2 id="cost-ranking-title">平均使用成本</h2>
                 </div>
                 <div className="ranking-summary">
                   <div className="portfolio-daily-cost">
@@ -1161,7 +1161,6 @@ export default function HomePage() {
               <div className="section-heading carousel-heading">
                 <div>
                   <h2>我的设备</h2>
-                  <p>横向浏览，点开任意产品即可编辑完整记录</p>
                 </div>
                 <div className="carousel-actions">
                   <button className="details-link" onClick={() => changeView('details')}>
