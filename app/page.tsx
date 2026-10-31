@@ -1048,7 +1048,7 @@ export default function HomePage() {
                 <div className="lifecycle-label-column">
                   <span className="lifecycle-column-head">设备</span>
                   {timelineDevices.map((device) => (
-                    <button key={device.id} onClick={() => openEdit(device)}>
+                    <button key={device.id} title={device.name} onClick={() => openEdit(device)}>
                       {device.name}
                     </button>
                   ))}
