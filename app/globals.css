@@ -3050,3 +3050,16 @@ footer {
   .journey-yearline { left: 10%; bottom: 8%; gap: 10px; font-size: 9px; }
   .journey-yearline > div { width: 96px; }
 }
+
+.journey-object-label { position: absolute; left: 50%; top: 100%; min-width: 150px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 3px; color: #58636c; font-size: 13px; line-height: 1.25; font-weight: 500; white-space: nowrap; opacity: var(--artwork-opacity); }
+.journey-object-label small { color: #8b9397; font-size: 10px; font-weight: 400; }
+@media (max-width:609px), (max-aspect-ratio:1/1) {
+  .journey-object-label { font-size: max(18px, calc(9px / var(--camera-scale))); }
+  .journey-object-label small { font-size: max(13px, calc(7px / var(--camera-scale))); }
+}
+
+@media (max-width:609px), (max-aspect-ratio:1/1) {
+  .journey-object { left: calc(50% + var(--object-mobile-x) - var(--object-w) / 2); top: calc(50% + var(--object-mobile-y) - var(--object-h) / 2); }
+  .journey-illustration { overflow: visible; }
+  .journey-cable { transform: translate(210px,160px) scale(.65,1); transform-origin: 0 0; }
+}

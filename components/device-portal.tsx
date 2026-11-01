@@ -8,14 +8,19 @@ import type { HistoryDevice } from '@/lib/cost-history';
 type PortalDevice = HistoryDevice & { image: string; category: string };
 type Destination = 'timeline' | 'costs' | 'devices';
 const dateLabel = (value: string) => value.replaceAll('-', '.');
+// Sizes use the visible silhouette, allowing for each photo's transparent padding
+// and front/back composite. They convey relative physical size, not millimetres.
 const positions = [
-  { id: 'iphone-14-pro', x: 0, y: 0, w: 205, h: 330, angle: -8 },
-  { id: 'macbook-air', x: -410, y: -150, w: 450, h: 310, angle: 12 },
-  { id: 'ipad-pro-2020', x: 370, y: -120, w: 290, h: 340, angle: -12 },
-  { id: 'airpods-pro-2', x: 290, y: 245, w: 180, h: 180, angle: 10 },
-  { id: 'apple-watch-s7', x: -220, y: 240, w: 170, h: 220, angle: -16 },
-  { id: 'homepod-mini-2020', x: -160, y: -325, w: 160, h: 180, angle: 0 },
-  { id: 'apple-tv-4k', x: 210, y: -340, w: 190, h: 150, angle: 10 },
+  { id: 'iphone-14-pro', mx: 0, my: 0, x: 0, y: 0, w: 160, h: 220, angle: -8, label: false },
+  { id: 'macbook-air', mx: -95, my: -300, x: -360, y: -20, w: 460, h: 350, angle: 12, label: false },
+  { id: 'ipad-pro-2020', mx: 115, my: 320, x: 360, y: -15, w: 360, h: 390, angle: -12, label: false },
+  { id: 'airpods-pro-2', mx: -70, my: 600, x: 285, y: 230, w: 94, h: 104, angle: 10, label: true },
+  { id: 'apple-watch-s7', mx: -225, my: 580, x: -260, y: 230, w: 102, h: 132, angle: -16, label: false },
+  { id: 'homepod-mini-2020', mx: -230, my: -70, x: -250, y: -315, w: 138, h: 132, angle: 0, label: true },
+  { id: 'homepod-mini-2024', mx: 230, my: -70, x: -65, y: -325, w: 138, h: 132, angle: 0, label: true },
+  { id: 'apple-tv-4k', mx: 215, my: -330, x: 205, y: -310, w: 172, h: 172, angle: 10, label: false },
+  { id: 'iphone-air-2025', mx: -170, my: 210, x: -45, y: 225, w: 142, h: 180, angle: 7, label: true },
+  { id: 'airpods-pro', mx: 110, my: 600, x: 455, y: 245, w: 92, h: 104, angle: -6, label: true },
 ];
 
 export function DevicePortal({ devices, today, onNavigate, onDetails, renderSection }: {
@@ -59,10 +64,11 @@ export function DevicePortal({ devices, today, onNavigate, onDetails, renderSect
     };
     const schedule = () => { if (!frame) frame = requestAnimationFrame(draw); };
     const measure = () => {
-      close = Math.min(2.15, window.innerWidth / 245, window.innerHeight / 400);
+      // Compensate for the smaller phone silhouette to preserve its opening close-up.
+      close = Math.min(2.15, window.innerWidth / 245, window.innerHeight / 400) * (205 / 160);
       wide = Math.min(window.innerWidth / 1260, window.innerHeight / 860) * .86;
-      if (window.innerWidth <= 609 || window.innerHeight > window.innerWidth) wide = Math.max(.5, wide);
-      if (motion.matches) close = Math.min(close, window.innerHeight * .6 / 330);
+      if (window.innerWidth <= 609 || window.innerHeight > window.innerWidth) wide = Math.min(.5, (window.innerWidth - 48) / 830, window.innerHeight / 1100);
+      if (motion.matches) close = Math.min(close, window.innerHeight * .6 / 220);
       inset = window.innerWidth <= 609 ? 16 : 40;
       end = Math.max(1, element.offsetHeight - window.innerHeight);
       top = element.getBoundingClientRect().top + window.scrollY;
@@ -101,7 +107,7 @@ export function DevicePortal({ devices, today, onNavigate, onDetails, renderSect
                   <path d="M1060 676l28-17 7 11-28 17zM1086 663l14-9 4 6-14 9M1089 667l14-9" />
                 </g>
               </svg>
-            {stageDevices.map(({ device, x, y, w, h, angle }, i) => <div key={device!.id} className={`journey-object journey-object-${i}`} style={{ '--object-x': `${x}px`, '--object-y': `${y}px`, '--object-w': `${w}px`, '--object-h': `${h}px`, '--object-angle': `${angle}deg` } as CSSProperties}><img src={device!.image} alt="" fetchPriority={i === 0 ? 'high' : 'auto'} decoding="async" /></div>)}
+            {stageDevices.map(({ device, x, y, w, h, angle, label, mx, my }, i) => <div key={device!.id} className={`journey-object journey-object-${i}`} data-device-id={device!.id} title={device!.name} style={{ '--object-x': `${x}px`, '--object-y': `${y}px`, '--object-mobile-x': `${mx}px`, '--object-mobile-y': `${my}px`, '--object-w': `${w}px`, '--object-h': `${h}px`, '--object-angle': `${angle}deg` } as CSSProperties}><img src={device!.image} alt="" fetchPriority={i === 0 ? 'high' : 'auto'} decoding="async" />{label && <span className="journey-object-label">{device!.name.replace('HomePod mini_', 'HomePod mini · ')}{device!.status === '归档' && <small>已归档</small>}</span>}</div>)}
             </div>
           </div>
           <div className="journey-editorial" aria-hidden="true">
