@@ -9,9 +9,10 @@ import { buildCostHistory, type HistoryDevice } from '@/lib/cost-history';
 const shortDate = (value: number) => new Date(value).toISOString().slice(0, 10).replaceAll('-', '/');
 const currency = (value: number) => `¥${value.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-export function CostHistory({ devices, today }: {
-  devices: HistoryDevice[];
+export function CostHistory({ devices, today, appearance = 'panel' }: {
+  devices: (HistoryDevice & { image?: string })[];
   today: string;
+  appearance?: 'panel' | 'story';
 }) {
   const [deviceId, setDeviceId] = useState('iphone-14-pro');
   const [view, setView] = useState<{ id: string; start: number; end: number } | null>(null);
@@ -25,8 +26,8 @@ export function CostHistory({ devices, today }: {
   const last = Math.max(first + 86400000, history?.end ?? first);
   const cutoff = new Date(last);
   cutoff.setUTCFullYear(cutoff.getUTCFullYear() - 2);
-  const start = view?.id === device?.id ? view.start : Math.max(first, cutoff.getTime());
-  const end = view?.id === device?.id ? view.end : last;
+  const start = view && view.id === device?.id ? view.start : Math.max(first, cutoff.getTime());
+  const end = view && view.id === device?.id ? view.end : last;
   currentRange.current = { start, end };
   const points = history?.points ?? [];
   const visible = points.filter(p => p.date >= start && p.date <= end);
@@ -115,7 +116,7 @@ export function CostHistory({ devices, today }: {
     ? [Math.max(0.01, min * 0.8), Math.max(1, max * 1.1)]
     : [min >= 0 ? Math.max(0, min - Math.max(0.5, (max - min) * 0.12)) : min - Math.max(0.5, (max - min) * 0.12), max + Math.max(0.5, (max - min) * 0.12)];
   return (
-    <section id="costs" className="cost-history-section" aria-labelledby="cost-history-title">
+    <section id="costs" className={`cost-history-section ${appearance === 'story' ? 'cost-history-story' : ''}`} aria-labelledby="cost-history-title">
       <header className="cost-history-header">
         <div>
           <h2 id="cost-history-title">每日平均成本</h2>
@@ -130,6 +131,7 @@ export function CostHistory({ devices, today }: {
       </NativeSelect>
       {history && !history.empty ? <>
       <div className="cost-history-current"><strong>{currency(history.current)}</strong><span>/天{history.missingPrice ? '（已知支出）' : ''}</span></div>
+      {appearance === 'story' && device.image && <figure className="story-cost-device" aria-hidden="true"><img src={device.image} alt="" loading="lazy" /></figure>}
       <div ref={chartRef} className="cost-history-interaction" role="group" aria-label="成本曲线，可双指缩放，放大后左右拖动">
       <ChartContainer className="cost-history-chart" config={{ daily: { label: '平均每日成本', color: 'var(--primary)' } }}>
         <LineChart accessibilityLayer data={chartPoints} margin={{ top: 15, right: 12, bottom: 8, left: 0 }}>
@@ -141,7 +143,7 @@ export function CostHistory({ devices, today }: {
             if (!active || !point) return null;
             return <div className="cost-history-tooltip"><span>{shortDate(point.date)}</span><strong>{currency(point.daily)}/天</strong><span>净投入 ¥{point.total.toLocaleString('zh-CN')} · 使用 {point.days} 天</span>{point.event && <span>{point.event}</span>}</div>;
           }} />
-          <Line dataKey="daily" type="linear" stroke="var(--primary)" strokeWidth={2} dot={false} isAnimationActive={false} activeDot={{ r: 4, stroke: 'var(--card)' }} />
+          <Line dataKey="daily" type="linear" stroke="var(--primary)" strokeWidth={appearance === 'story' ? 3 : 2} dot={false} isAnimationActive={false} activeDot={{ r: 4, stroke: 'var(--card)' }} />
           {visible.filter(p => p.change !== 0).map(p => <ReferenceDot key={p.date} x={p.date} y={p.daily} r={3} fill="var(--primary)" stroke="var(--card)" />)}
         </LineChart>
       </ChartContainer>

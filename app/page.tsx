@@ -1043,53 +1043,7 @@ export default function HomePage() {
     else carouselApi?.scrollPrev();
   }
 
-  return (
-    <main className="min-h-screen bg-background text-foreground">
-      <header className="site-navigation">
-        <div className="navigation-inner">
-          <button className="navigation-title" onClick={() => changeView('home')} aria-label="返回首页">我的物品</button>
-          <div className="navigation-actions">
-            <input
-              ref={fileInput}
-              type="file"
-              accept=".csv,text/csv"
-              className="sr-only"
-              onChange={(event) => importCsv(event.target.files?.[0])}
-            />
-            <button
-              className="navigation-button"
-              aria-label="导入物品"
-              onClick={() => fileInput.current?.click()}
-            >
-              <Upload />
-              <span>导入</span>
-            </button>
-            <button className="navigation-button" aria-label="导出物品" onClick={exportCsv}>
-              <Download />
-              <span>导出</span>
-            </button>
-            <button
-              className="navigation-button icon-only"
-              aria-label={isDark ? '切换浅色模式' : '切换深色模式'}
-              onClick={toggleTheme}
-            >
-              {isDark ? <Sun /> : <Moon />}
-            </button>
-            <Button className="add-button" aria-label="添加物品" onClick={openNew}>
-              <Plus />
-              <span>添加物品</span>
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <div className="content-wrap">
-        {viewMode !== 'details' ? (
-          <DevicePortal
-            devices={devices.map(device => ({ ...device, image: getProductImage(device), usageEnd: timelineEndDate(device) || today }))}
-            activeSection={viewMode === 'overview' ? sectionTarget || 'timeline' : null}
-            onNavigate={section => changeView(viewMode === 'overview' && sectionTarget === section ? 'home' : 'overview', viewMode === 'overview' && sectionTarget === section ? null : section, true)}
-            renderSection={section => (
+  const renderWorkspaceSection = (section: 'timeline' | 'costs' | 'devices') => (
               <div className="dashboard-view portal-panel">
                 {section === 'timeline' && (
             <section
@@ -1377,6 +1331,8 @@ export default function HomePage() {
                                   className={device.photo ? 'user-photo' : 'catalog-photo'}
                                   src={productImage}
                                   alt={device.name}
+                                  loading="lazy"
+                                  decoding="async"
                                 />
                               </span>
                             ) : (
@@ -1399,11 +1355,11 @@ export default function HomePage() {
                             </span>
                             <span>
                               <small>总投入</small>
-                              <strong>{money.format(total)}</strong>
+                              <strong>{total > 0 ? money.format(total) : '待补充'}</strong>
                             </span>
                             <span>
                               <small>净成本/天</small>
-                              <strong>¥{decimal.format(averageDailyCost(device))}</strong>
+                              <strong>{total > 0 ? `¥${decimal.format(averageDailyCost(device))}` : '—'}</strong>
                             </span>
                           </span>
                         </button>
@@ -1441,8 +1397,69 @@ export default function HomePage() {
             </section>
                 )}
               </div>
-            )}
+  );
+
+  return (
+    <main className="min-h-screen bg-background text-foreground">
+      <header className="site-navigation">
+        <div className="navigation-inner">
+          <button className="navigation-title" onClick={() => changeView('home')} aria-label="返回首页">我的物品</button>
+          <div className="navigation-actions">
+            <input
+              ref={fileInput}
+              type="file"
+              accept=".csv,text/csv"
+              className="sr-only"
+              onChange={(event) => importCsv(event.target.files?.[0])}
+            />
+            <button
+              className="navigation-button"
+              aria-label="导入物品"
+              onClick={() => fileInput.current?.click()}
+            >
+              <Upload />
+              <span>导入</span>
+            </button>
+            <button className="navigation-button" aria-label="导出物品" onClick={exportCsv}>
+              <Download />
+              <span>导出</span>
+            </button>
+            <button
+              className="navigation-button icon-only"
+              aria-label={isDark ? '切换浅色模式' : '切换深色模式'}
+              onClick={toggleTheme}
+            >
+              {isDark ? <Sun /> : <Moon />}
+            </button>
+            <Button className="add-button" aria-label="添加物品" onClick={openNew}>
+              <Plus />
+              <span>添加物品</span>
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <div className="content-wrap">
+        {viewMode === 'home' ? (
+          <DevicePortal
+            devices={devices.map(device => ({ ...device, image: getProductImage(device), usageEnd: timelineEndDate(device) || today }))}
+            today={today}
+            onNavigate={section => changeView('overview', section)}
+            onDetails={() => { setFilter('全部'); setQuery(''); changeView('details'); }}
+            onEdit={id => { const device = devices.find(item => item.id === id); if (device) openEdit(device); }}
+            renderSection={renderWorkspaceSection}
           />
+        ) : viewMode === 'overview' ? (
+          <div className="analysis-workbench">
+            <nav className="workbench-navigation" aria-label="数据分析">
+              <button className="back-link" onClick={() => changeView('home')}><ChevronLeft />返回首页</button>
+              <div className="period-switch" role="group" aria-label="切换分析模块">
+                {([['timeline', '时间轴'], ['costs', '成本'], ['devices', '设备']] as const).map(([id, label]) => <button key={id} className={(sectionTarget || 'timeline') === id ? 'selected' : ''} aria-pressed={(sectionTarget || 'timeline') === id} onClick={() => changeView('overview', id)}>{label}</button>)}
+              </div>
+            </nav>
+            <h1>{sectionTarget === 'costs' ? '成本分析' : sectionTarget === 'devices' ? '我的设备' : '使用时间轴'}</h1>
+            {renderWorkspaceSection((sectionTarget || 'timeline') as 'timeline' | 'costs' | 'devices')}
+          </div>
         ) : (
           <div className="details-view">
             <header className="details-header">
