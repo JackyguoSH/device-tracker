@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { CostHistory } from '@/components/cost-history';
-import { DevicePortal, type PortalScene } from '@/components/device-portal';
+import { DevicePortal } from '@/components/device-portal';
 import useEmblaCarousel from 'embla-carousel-react';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 
@@ -524,7 +524,6 @@ export default function HomePage() {
   const [isDark, setIsDark] = useState(false);
   const [today, setToday] = useState('');
   const [viewMode, setViewMode] = useState<'home' | 'overview' | 'details'>('home');
-  const [portalScene, setPortalScene] = useState<PortalScene>('objects');
   const [sectionTarget, setSectionTarget] = useState<string | null>(null);
   const [costPeriod, setCostPeriod] = useState<'day' | 'year'>('day');
   const [timelineZoom, setTimelineZoom] = useState(1);
@@ -543,7 +542,7 @@ export default function HomePage() {
       timelineViewport.current.scrollLeft = 0;
     }
     setTimelineTooltip(null);
-  }, [timelineZoom, viewMode, sectionTarget, portalScene, chartStatus, timelineSort]);
+  }, [timelineZoom, viewMode, sectionTarget, chartStatus, timelineSort]);
 
   useEffect(() => {
     const hide = () => setTimelineTooltip(null);
@@ -570,7 +569,7 @@ export default function HomePage() {
     const observer = new ResizeObserver(([entry]) => setTimelineWidth(entry.contentRect.width));
     observer.observe(element);
     return () => observer.disconnect();
-  }, [viewMode, sectionTarget, portalScene]);
+  }, [viewMode, sectionTarget]);
 
   useEffect(() => {
     const saved = localStorage.getItem('wuji-devices-v1');
@@ -988,7 +987,6 @@ export default function HomePage() {
   }
 
   function changeView(next: 'home' | 'overview' | 'details', section: string | null = null, preserveScroll = false) {
-    if (next === 'home') setPortalScene('objects');
     preservePortalScroll.current = preserveScroll;
     const target = next === 'overview' ? section || 'timeline' : null;
     const hash = next === 'home' ? '' : `#${next === 'details' ? 'details' : target}`;
@@ -1033,7 +1031,7 @@ export default function HomePage() {
       else window.scrollTo({ top: 0, behavior: 'instant' });
     });
     return () => cancelAnimationFrame(frame);
-  }, [viewMode, sectionTarget, portalScene]);
+  }, [viewMode, sectionTarget]);
 
   useEffect(() => {
     carouselApi?.reInit();
@@ -1446,8 +1444,6 @@ export default function HomePage() {
           <DevicePortal
             devices={devices.map(device => ({ ...device, image: getProductImage(device), usageEnd: timelineEndDate(device) || today }))}
             today={today}
-            scene={portalScene}
-            onSceneChange={setPortalScene}
             onNavigate={section => changeView('overview', section)}
             onDetails={() => { setFilter('全部'); setQuery(''); changeView('details'); }}
             onEdit={id => { const device = devices.find(item => item.id === id); if (device) openEdit(device); }}

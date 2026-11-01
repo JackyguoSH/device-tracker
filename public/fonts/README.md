@@ -1,6 +1,6 @@
 # 网站字体
 
-- Objects Sans：Noto Sans SC Variable，400–700。
+- Objects Sans：Noto Sans SC Variable，400–800。
 - Objects Serif：Noto Serif SC Variable，400–700。
 - 字体来源：Google Fonts 官方仓库，https://github.com/google/fonts/tree/main/ofl/notosanssc 和 https://github.com/google/fonts/tree/main/ofl/notoserifsc。
 - 两者均按 SIL Open Font License 1.1 分发，许可证位于同目录。

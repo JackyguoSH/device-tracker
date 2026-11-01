@@ -11,7 +11,7 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <head>
-        <link rel="preload" href="/fonts/noto-sans-sc-ui-v3.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/fonts/noto-sans-sc-ui-v4.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
       </head>
       <body>{children}</body>
     </html>

@@ -1,90 +1,149 @@
 'use client';
 
-import { useRef, useState, type ReactNode } from 'react';
-import { ArrowUpRight, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
+import { ArrowDown, ArrowUpRight, ArrowRight } from 'lucide-react';
 import { CostHistory } from '@/components/cost-history';
 import { buildCostHistory, HISTORY_DAY, type HistoryDevice } from '@/lib/cost-history';
 
 type PortalDevice = HistoryDevice & { image: string; category: string };
 type Destination = 'timeline' | 'costs' | 'devices';
-export type PortalScene = 'objects' | 'timeline' | 'costs';
 const dateLabel = (value: string) => value.replaceAll('-', '.');
-const money = (value: number) => `¥${value.toLocaleString('zh-CN', { maximumFractionDigits: 2 })}`;
+const dayCount = (device: PortalDevice, today: string) => {
+  const value = Math.round((Date.parse(`${device.usageEnd || today}T00:00:00Z`) - Date.parse(`${device.purchaseDate}T00:00:00Z`)) / HISTORY_DAY);
+  return Number.isFinite(value) ? Math.max(0, value) : null;
+};
+const positions = [
+  { id: 'iphone-14-pro', x: 0, y: 0, w: 205, h: 330, angle: -8 },
+  { id: 'macbook-air', x: -410, y: -150, w: 450, h: 310, angle: 12 },
+  { id: 'ipad-pro-2020', x: 370, y: -120, w: 290, h: 340, angle: -12 },
+  { id: 'airpods-pro-2', x: 290, y: 245, w: 180, h: 180, angle: 10 },
+  { id: 'apple-watch-s7', x: -220, y: 240, w: 170, h: 220, angle: -16 },
+  { id: 'homepod-mini-2020', x: -160, y: -325, w: 160, h: 180, angle: 0 },
+  { id: 'apple-tv-4k', x: 210, y: -340, w: 190, h: 150, angle: 10 },
+];
 
-export function DevicePortal({ devices, today, scene, onSceneChange, onNavigate, onDetails, onEdit, renderSection }: {
+export function DevicePortal({ devices, today, onNavigate, onDetails, onEdit, renderSection }: {
   devices: PortalDevice[];
   today: string;
-  scene: PortalScene;
-  onSceneChange: (scene: PortalScene) => void;
   onNavigate: (destination: Destination) => void;
   onDetails: () => void;
   onEdit: (id: string) => void;
   renderSection: (destination: Destination) => ReactNode;
 }) {
-  const [deviceId, setDeviceId] = useState('iphone-14-pro');
-  const [status, setStatus] = useState<'全部' | '持有' | '归档'>('全部');
-  const art = useRef<HTMLButtonElement>(null);
-  const visible = devices.filter(device => status === '全部' || device.status === status);
-  const device = visible.find(item => item.id === deviceId) || visible[0];
-  const index = visible.findIndex(item => item.id === device?.id);
-  const next = visible.length > 1 ? visible[(index + 1) % visible.length] : null;
-  const history = device && today ? buildCostHistory(device, today) : null;
-  const days = device && today ? Math.max(0, Math.round((Date.parse(`${device.usageEnd || today}T00:00:00Z`) - Date.parse(`${device.purchaseDate}T00:00:00Z`)) / HISTORY_DAY)) : null;
-  const select = (id: string) => { setDeviceId(id); resetTilt(); };
-  const resetTilt = () => { art.current?.style.setProperty('--tilt-x', '0deg'); art.current?.style.setProperty('--tilt-y', '0deg'); };
-  const switchScene = (value: PortalScene) => { onSceneChange(value); window.scrollTo({ top: 0, behavior: 'instant' }); };
+  const track = useRef<HTMLElement>(null);
+  const lastBlock = useRef<HTMLElement>(null);
+  const firstYear = devices.map(d => d.purchaseDate).filter(Boolean).sort()[0]?.slice(0, 4);
+  const active = devices.filter(d => d.status === '持有');
+  const featured = ['ipad-pro-2020', 'iphone-14-pro', 'macbook-air', 'homepod-mini-2020', 'iphone-air-2025'].map(id => devices.find(d => d.id === id)).filter((d): d is PortalDevice => !!d);
+  const stageDevices = positions.map((position, i) => ({ ...position, device: devices.find(d => d.id === position.id) || (i === 0 ? devices.find(d => d.image) : undefined) })).filter((item, index, all) => item.device?.image && all.findIndex(other => other.device?.id === item.device?.id) === index);
+
+  useEffect(() => {
+    const element = track.current;
+    const last = lastBlock.current;
+    if (!element || !last) return;
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let frame = 0;
+    let progress = 0;
+    let end = 1;
+    let knee = .8;
+    let top = 0;
+    let close = 1;
+    let wide = .6;
+    let target = 0;
+    const clamp = (n: number) => Math.max(0, Math.min(1, n));
+    const draw = () => {
+      frame = 0;
+      progress += (target - progress) * .22;
+      if (Math.abs(target - progress) < .0003) progress = target;
+      const story = clamp(progress / knee);
+      const camera = 1 - Math.pow(1 - clamp(story / .69), 3);
+      element.style.setProperty('--camera-scale', String(close + (wide - close) * camera));
+      element.style.setProperty('--phone-drift', `${360 * camera}px`);
+      element.style.setProperty('--camera-turn', `${-6 * (1 - camera)}deg`);
+      element.style.setProperty('--field-dim', String(.68 * clamp((story - .03) / .22)));
+      element.style.setProperty('--scene-light', String(clamp((progress - knee) / (1 - knee))));
+      element.style.setProperty('--cue-opacity', String(1 - clamp(progress * 10)));
+      if (progress !== target) frame = requestAnimationFrame(draw);
+    };
+    const schedule = () => {
+      if (motion.matches) return;
+      target = clamp((window.scrollY - top) / end);
+      if (!frame) frame = requestAnimationFrame(draw);
+    };
+    const measure = () => {
+      const viewport = window.innerHeight;
+      close = Math.min(2.15, window.innerWidth / 245, viewport / 400);
+      wide = Math.min(window.innerWidth / 1260, viewport / 860) * .92;
+      if (motion.matches) {
+        element.style.setProperty('--camera-scale', String(wide));
+        element.style.setProperty('--phone-drift', '0px');
+        return;
+      }
+      const bottom = last.offsetTop + last.offsetHeight;
+      end = bottom + .75 * viewport;
+      knee = bottom / end;
+      element.style.height = `${end + viewport}px`;
+      top = element.getBoundingClientRect().top + window.scrollY;
+      schedule();
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(last);
+    window.addEventListener('resize', measure);
+    motion.addEventListener('change', measure);
+    window.addEventListener('scroll', schedule, { passive: true });
+    measure();
+    return () => {
+      observer.disconnect(); cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', measure);
+      motion.removeEventListener('change', measure);
+    };
+  }, [featured.length, stageDevices.length]);
 
   return (
-    <div className={`exhibit-page exhibit-${scene}`}>
-      <nav className="exhibit-navigation" aria-label="探索我的物品">
-        <div className="exhibit-tabs" role="tablist" aria-label="展示场景">
-          {([['objects', '物品'], ['timeline', '使用历程'], ['costs', '每日成本']] as const).map(([id, label]) => <button key={id} id={`exhibit-tab-${id}`} role="tab" aria-selected={scene === id} aria-controls="exhibit-panel" onClick={() => switchScene(id)}>{label}</button>)}
+    <div className="journey-page">
+      <section className="journey-track" ref={track} aria-label="物品与时间">
+        <div className="journey-scene" aria-hidden="true">
+          <div className="journey-plane">
+            {stageDevices.map(({ device, x, y, w, h, angle }, i) => <div key={device!.id} className={`journey-object journey-object-${i}`} style={{ '--object-x': `${x}px`, '--object-y': `${y}px`, '--object-w': `${w}px`, '--object-h': `${h}px`, '--object-angle': `${angle}deg` } as CSSProperties}><img src={device!.image} alt="" fetchPriority={i === 0 ? 'high' : 'auto'} decoding="async" /></div>)}
+          </div>
+          <div className="journey-shade" />
+          <div className="journey-daylight" />
+          <div className="journey-first-caption"><span>{stageDevices[0]?.device?.name}</span><span>{stageDevices[0]?.device ? `${dateLabel(stageDevices[0].device.purchaseDate)} — ${stageDevices[0].device.status === '持有' ? '至今' : dateLabel(stageDevices[0].device.usageEnd)}` : ''}</span></div>
+          <div className="journey-scroll-cue"><ArrowDown /><span>向下，走过时间</span></div>
         </div>
-        <button className="exhibit-records" onClick={onDetails}>全部记录<ArrowUpRight /></button>
-      </nav>
-      <div id="exhibit-panel" role="tabpanel" aria-labelledby={`exhibit-tab-${scene}`}>
-        {scene === 'objects' ? <section className="exhibit-stage" aria-label="设备展览">
-          <div className="exhibit-wash" aria-hidden="true" />
-          <aside className="exhibit-index" aria-label="选择设备">
-            <div className="exhibit-status" role="group" aria-label="筛选设备状态">
-              {(['全部', '持有', '归档'] as const).map(value => <button key={value} aria-pressed={status === value} onClick={() => setStatus(value)}>{value === '持有' ? '使用中' : value === '归档' ? '已归档' : '全部'}</button>)}
-            </div>
-            <div className="exhibit-device-list">{visible.map((item, i) => <button key={item.id} aria-pressed={device?.id === item.id} onClick={() => select(item.id)}><span className="exhibit-device-number">{String(i + 1).padStart(2, '0')}</span><span>{item.name}</span></button>)}</div>
-          </aside>
-          {device ? <>
-            <div className="exhibit-art-space">
-              <span className="exhibit-edition">{device.category} <span> / </span> {device.status === '持有' ? '使用中' : '已归档'}</span>
-              <button ref={art} className={`exhibit-aperture ${device.id === 'iphone-air' ? 'exhibit-air' : ''}`} aria-label={`查看并编辑 ${device.name}`} onClick={() => onEdit(device.id)} onPointerMove={event => {
-                if (event.pointerType !== 'mouse' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-                const rect = event.currentTarget.getBoundingClientRect();
-                event.currentTarget.style.setProperty('--tilt-y', `${((event.clientX - rect.left) / rect.width - .5) * 10}deg`);
-                event.currentTarget.style.setProperty('--tilt-x', `${((event.clientY - rect.top) / rect.height - .5) * -8}deg`);
-              }} onPointerLeave={resetTilt}>
-                <div className="exhibit-art" key={device.id}>{device.image ? <img src={device.image} alt={device.name} fetchPriority="high" /> : <span className="exhibit-no-image">{device.name}</span>}</div>
-                <span className="exhibit-open"><ArrowUpRight /></span>
-              </button>
-              <span className="exhibit-date" key={`date-${device.id}`}>{dateLabel(device.purchaseDate)} — {device.status === '持有' ? '至今' : dateLabel(device.usageEnd || device.archivedDate)}</span>
-            </div>
-            <div className="exhibit-next">
-              {next && <button onClick={() => select(next.id)} aria-label={`下一件：${next.name}`}><span className="exhibit-next-label">下一件<ArrowRight /></span><span className="exhibit-next-window">{next.image ? <img src={next.image} alt="" /> : next.name}</span><span className="exhibit-next-name">{next.name}</span></button>}
-            </div>
-            <div className="exhibit-title" key={`title-${device.id}`} aria-live="polite"><span>{String(index + 1).padStart(2, '0')} / {String(visible.length).padStart(2, '0')}</span><h1>{device.name}</h1><button onClick={() => switchScene('costs')}>查看这件物品的成本曲线<ArrowUpRight /></button></div>
-            <dl className="exhibit-facts" key={`facts-${device.id}`}>
-              <div><dt>{device.status === '持有' ? '已使用' : '共使用'}</dt><dd>{days === null || !Number.isFinite(days) ? '—' : <>{days.toLocaleString('zh-CN')}<small> 天</small></>}</dd></div>
-              <div><dt>净投入</dt><dd>{device.purchasePrice === 0 && device.additional === 0 ? '待补充' : money(device.purchasePrice + device.additional - (device.status === '归档' ? device.archivedPrice : 0))}</dd></div>
-              <div><dt>平均每天</dt><dd>{history && !history.empty ? money(history.current) : '—'}</dd></div>
-            </dl>
-            <div className="exhibit-mobile-controls"><button aria-label="上一件设备" disabled={visible.length < 2} onClick={() => select(visible[(index - 1 + visible.length) % visible.length].id)}><ChevronLeft /></button><span>{String(index + 1).padStart(2, '0')} <i>/ {String(visible.length).padStart(2, '0')}</i></span><button aria-label="下一件设备" disabled={!next} onClick={() => next && select(next.id)}><ChevronRight /></button></div>
-          </> : <div className="exhibit-empty">暂无{status === '归档' ? '已归档' : '使用中'}物品<button onClick={() => setStatus('全部')}>查看全部</button></div>}
-        </section> : scene === 'timeline' ? <section className="exhibit-data-scene exhibit-time-scene" key="timeline">
-          <header className="exhibit-chapter"><div><p>使用时间轴</p><h1>时间，留下痕迹。</h1></div><span>{today ? `${devices.map(d => d.purchaseDate).filter(Boolean).sort()[0]?.slice(0,4) || ''} — ${today.slice(0,4)}` : ''}</span></header>
-          <div className="exhibit-timeline">{renderSection('timeline')}</div>
-          <button className="exhibit-scene-link" onClick={() => switchScene('costs')}>再看看，每一天的花费<ArrowRight /></button>
-        </section> : <section className="exhibit-data-scene exhibit-cost-scene" key="costs">
-          <header className="exhibit-chapter"><div><p>每日平均成本</p><h1>越用，越值得。</h1></div><button className="exhibit-scene-link" onClick={() => onNavigate('costs')}>成本排名<ArrowUpRight /></button></header>
-          <div className="story-cost"><CostHistory devices={devices} today={today} appearance="story" initialDeviceId={device?.id} /></div>
-        </section>}
-      </div>
+        <nav className="journey-shortcuts" aria-label="首页导航"><a href="#journey-records">使用历程</a><a href="#journey-cost">每日成本</a><button onClick={onDetails}>全部记录<ArrowUpRight /></button></nav>
+        <div className="journey-content">
+          <header className="journey-intro"><p>{firstYear && today ? `${firstYear} — ${today.slice(0, 4)}` : '我的物品'}</p><h1><span>我的物品。</span><span>从购入，</span><span>到今天，</span><span>每一天。</span></h1></header>
+          <div className="journey-moments">
+            {featured.map((device, i) => {
+              const history = today ? buildCostHistory(device, today) : null;
+              const days = today ? dayCount(device, today) : null;
+              const net = device.purchasePrice + device.additional - (device.status === '归档' ? device.archivedPrice : 0);
+              return <article ref={i === featured.length - 1 ? lastBlock : undefined} className={`journey-moment journey-moment-${i}`} key={device.id}>
+                <button onClick={() => onEdit(device.id)} aria-label={`查看并编辑 ${device.name}`}><img src={device.image} alt="" /><span className="journey-moment-name">{device.name}<ArrowUpRight /></span></button>
+                <p className="journey-moment-value">{i === 1 && history && !history.empty ? <>{history.current.toFixed(2)}<small> 元 / 天</small></> : <>{days === null ? '—' : days.toLocaleString('zh-CN')}<small> 天</small></>}</p>
+                <p className="journey-moment-date">{dateLabel(device.purchaseDate)} — {device.status === '持有' ? '至今' : dateLabel(device.usageEnd || device.archivedDate)}</p>
+                {device.status === '归档' && device.purchasePrice > 0 && <p className="journey-moment-net">净花费 ¥{net.toLocaleString('zh-CN')}</p>}
+              </article>;
+            })}
+            {!featured.length && <article className="journey-moment journey-moment-empty" ref={lastBlock}><p>物品的故事，从这里开始。</p><button onClick={onDetails}>查看记录<ArrowUpRight /></button></article>}
+          </div>
+        </div>
+      </section>
+
+      <section className="journey-records" id="journey-records" aria-labelledby="journey-records-title">
+        <div className="journey-bridge" aria-hidden="true" />
+        <div className="journey-records-inner">
+          <header className="journey-records-heading"><h2 id="journey-records-title">用过的时间。<br /><span>都有迹可循。</span></h2><div><p><strong>{active.length}</strong> 件使用中<span> / {devices.length - active.length} 件已归档</span></p><button className="journey-link" onClick={onDetails}>全部记录<ArrowUpRight /></button></div></header>
+          <div className="journey-timeline">{renderSection('timeline')}</div>
+          <section className="journey-cost" id="journey-cost" aria-labelledby="journey-cost-title">
+            <div className="journey-cost-heading"><p>每日平均成本</p><h2 id="journey-cost-title">时间越长，<br />每天越少。</h2><button className="journey-link" onClick={() => onNavigate('costs')}>查看成本排名<ArrowRight /></button></div>
+            <div className="journey-cost-chart"><CostHistory devices={devices} today={today} /></div>
+          </section>
+          <div className="journey-bottom"><span>我的物品</span><button className="journey-link" onClick={onDetails}>管理所有设备<ArrowUpRight /></button></div>
+        </div>
+      </section>
     </div>
   );
 }
