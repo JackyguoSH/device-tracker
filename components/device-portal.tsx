@@ -1,129 +1,90 @@
 'use client';
 
-import { useEffect, useRef, type ReactNode } from 'react';
-import { ArrowDown, ArrowUpRight, ChevronRight } from 'lucide-react';
+import { useRef, useState, type ReactNode } from 'react';
+import { ArrowUpRight, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CostHistory } from '@/components/cost-history';
-import type { HistoryDevice } from '@/lib/cost-history';
+import { buildCostHistory, HISTORY_DAY, type HistoryDevice } from '@/lib/cost-history';
 
 type PortalDevice = HistoryDevice & { image: string; category: string };
-type PortalDestination = 'timeline' | 'costs' | 'devices';
+type Destination = 'timeline' | 'costs' | 'devices';
+export type PortalScene = 'objects' | 'timeline' | 'costs';
 const dateLabel = (value: string) => value.replaceAll('-', '.');
+const money = (value: number) => `¥${value.toLocaleString('zh-CN', { maximumFractionDigits: 2 })}`;
 
-export function DevicePortal({ devices, today, onNavigate, onDetails, onEdit, renderSection }: {
+export function DevicePortal({ devices, today, scene, onSceneChange, onNavigate, onDetails, onEdit, renderSection }: {
   devices: PortalDevice[];
   today: string;
-  onNavigate: (destination: PortalDestination) => void;
+  scene: PortalScene;
+  onSceneChange: (scene: PortalScene) => void;
+  onNavigate: (destination: Destination) => void;
   onDetails: () => void;
   onEdit: (id: string) => void;
-  renderSection: (destination: PortalDestination) => ReactNode;
+  renderSection: (destination: Destination) => ReactNode;
 }) {
-  const root = useRef<HTMLDivElement>(null);
-  const hero = useRef<HTMLElement>(null);
-  const active = devices.filter(device => device.status === '持有');
-  const pictured = active.filter(device => device.image);
-  const featured = pictured.find(device => device.id === 'iphone-14-pro') || pictured[0];
-  const earliest = [...devices].filter(device => device.purchaseDate).sort((a, b) => a.purchaseDate.localeCompare(b.purchaseDate))[0];
-  const longest = [...pictured].filter(device => device.purchaseDate).sort((a, b) => a.purchaseDate.localeCompare(b.purchaseDate))[0];
-  const firstYear = earliest?.purchaseDate.slice(0, 4);
-  const currentYear = today.slice(0, 4);
-
-  useEffect(() => {
-    const element = root.current;
-    if (!element || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const observer = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('is-visible');
-          observer.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.1 });
-    element.querySelectorAll('[data-reveal]').forEach(target => observer.observe(target));
-    element.classList.add('has-scroll-effects');
-    let frame = 0;
-    const update = () => {
-      frame = 0;
-      const scene = hero.current;
-      if (!scene) return;
-      const rect = scene.getBoundingClientRect();
-      const pin = scene.firstElementChild as HTMLElement | null;
-      const offset = pin ? Number.parseFloat(getComputedStyle(pin).top) || 0 : 0;
-      const progress = Math.max(0, Math.min(1, (offset - rect.top) / Math.max(1, rect.height - (pin?.offsetHeight || window.innerHeight))));
-      scene.style.setProperty('--hero-progress', progress.toFixed(3));
-    };
-    const schedule = () => { if (!frame) frame = requestAnimationFrame(update); };
-    window.addEventListener('scroll', schedule, { passive: true });
-    window.addEventListener('resize', schedule);
-    update();
-    return () => {
-      observer.disconnect();
-      cancelAnimationFrame(frame);
-      element.classList.remove('has-scroll-effects');
-      window.removeEventListener('scroll', schedule);
-      window.removeEventListener('resize', schedule);
-    };
-  }, []);
-
-  const explore = () => {
-    const section = document.getElementById('story-timeline');
-    if (!section) return;
-    const top = section.getBoundingClientRect().top + window.scrollY - 70;
-    section.focus({ preventScroll: true });
-    window.scrollTo({ top, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
-  };
+  const [deviceId, setDeviceId] = useState('iphone-14-pro');
+  const [status, setStatus] = useState<'全部' | '持有' | '归档'>('全部');
+  const art = useRef<HTMLButtonElement>(null);
+  const visible = devices.filter(device => status === '全部' || device.status === status);
+  const device = visible.find(item => item.id === deviceId) || visible[0];
+  const index = visible.findIndex(item => item.id === device?.id);
+  const next = visible.length > 1 ? visible[(index + 1) % visible.length] : null;
+  const history = device && today ? buildCostHistory(device, today) : null;
+  const days = device && today ? Math.max(0, Math.round((Date.parse(`${device.usageEnd || today}T00:00:00Z`) - Date.parse(`${device.purchaseDate}T00:00:00Z`)) / HISTORY_DAY)) : null;
+  const select = (id: string) => { setDeviceId(id); resetTilt(); };
+  const resetTilt = () => { art.current?.style.setProperty('--tilt-x', '0deg'); art.current?.style.setProperty('--tilt-y', '0deg'); };
+  const switchScene = (value: PortalScene) => { onSceneChange(value); window.scrollTo({ top: 0, behavior: 'instant' }); };
 
   return (
-    <div className="story-page" ref={root}>
-      <section className="story-hero" ref={hero} aria-labelledby="story-title">
-        <div className="story-hero-pin">
-          <div className="story-hero-copy">
-            <p className="story-eyebrow">{firstYear && currentYear ? `${firstYear} — ${currentYear}` : '我的物品'}</p>
-            <h1 id="story-title"><span>我的</span><span>物品</span></h1>
-            <div className="story-hero-foot">
-              <p>{active.length} 件使用中<span> / </span>{devices.length - active.length} 件已归档</p>
-              <button className="story-text-link" onClick={onDetails}>查看全部物品<ArrowUpRight /></button>
+    <div className={`exhibit-page exhibit-${scene}`}>
+      <nav className="exhibit-navigation" aria-label="探索我的物品">
+        <div className="exhibit-tabs" role="tablist" aria-label="展示场景">
+          {([['objects', '物品'], ['timeline', '使用历程'], ['costs', '每日成本']] as const).map(([id, label]) => <button key={id} id={`exhibit-tab-${id}`} role="tab" aria-selected={scene === id} aria-controls="exhibit-panel" onClick={() => switchScene(id)}>{label}</button>)}
+        </div>
+        <button className="exhibit-records" onClick={onDetails}>全部记录<ArrowUpRight /></button>
+      </nav>
+      <div id="exhibit-panel" role="tabpanel" aria-labelledby={`exhibit-tab-${scene}`}>
+        {scene === 'objects' ? <section className="exhibit-stage" aria-label="设备展览">
+          <div className="exhibit-wash" aria-hidden="true" />
+          <aside className="exhibit-index" aria-label="选择设备">
+            <div className="exhibit-status" role="group" aria-label="筛选设备状态">
+              {(['全部', '持有', '归档'] as const).map(value => <button key={value} aria-pressed={status === value} onClick={() => setStatus(value)}>{value === '持有' ? '使用中' : value === '归档' ? '已归档' : '全部'}</button>)}
             </div>
-          </div>
-          {featured && <div className="story-hero-object">
-            <button onClick={() => onEdit(featured.id)} aria-label={`查看并编辑 ${featured.name}`}>
-              <img src={featured.image} alt={featured.name} fetchPriority="high" decoding="async" />
-            </button>
-            <div className="story-object-caption"><strong>{featured.name}</strong><span>{dateLabel(featured.purchaseDate)} — 至今</span></div>
-          </div>}
-          <button className="story-scroll-cue" onClick={explore} aria-label="向下探索使用历程"><ArrowDown /><span>向下探索</span></button>
-        </div>
-      </section>
-
-      <section className="story-time" id="story-timeline" tabIndex={-1} aria-labelledby="story-time-title">
-        <div className="story-time-intro" data-reveal>
-          <p className="story-eyebrow">使用时间轴</p>
-          <h2 id="story-time-title">{firstYear ? <>从 {firstYear}，<br />到今天。</> : <>从购入，<br />到今天。</>}</h2>
-          {longest && <button className="story-time-object" onClick={() => onEdit(longest.id)} aria-label={`查看并编辑 ${longest.name}`}>
-            <img src={longest.image} alt={longest.name} loading="lazy" />
-            <span><strong>{longest.name}</strong><small>{dateLabel(longest.purchaseDate)} 购入</small></span>
-          </button>}
-        </div>
-        <div className="story-time-chart" data-reveal>{renderSection('timeline')}</div>
-      </section>
-
-      <section className="story-cost" id="story-costs" aria-labelledby="story-cost-title">
-        <div className="story-cost-inner">
-          <header className="story-cost-intro" data-reveal>
-            <p className="story-eyebrow">每日平均成本</p>
-            <h2 id="story-cost-title">每一天，<br />花费多少。</h2>
-          </header>
-          <div className="story-cost-canvas" data-reveal><CostHistory devices={devices} today={today} appearance="story" /></div>
-          <button className="story-text-link story-cost-link" onClick={() => onNavigate('costs')}>查看成本排名<ChevronRight /></button>
-        </div>
-      </section>
-
-      <section className="story-collection" id="story-devices" aria-labelledby="story-collection-title">
-        <header className="story-collection-header" data-reveal>
-          <div><p className="story-eyebrow">设备与记录</p><h2 id="story-collection-title">我的设备。</h2></div>
-          <button className="story-text-link" onClick={onDetails}>全部明细<ArrowUpRight /></button>
-        </header>
-        <div className="story-collection-content" data-reveal>{renderSection('devices')}</div>
-      </section>
+            <div className="exhibit-device-list">{visible.map((item, i) => <button key={item.id} aria-pressed={device?.id === item.id} onClick={() => select(item.id)}><span className="exhibit-device-number">{String(i + 1).padStart(2, '0')}</span><span>{item.name}</span></button>)}</div>
+          </aside>
+          {device ? <>
+            <div className="exhibit-art-space">
+              <span className="exhibit-edition">{device.category} <span> / </span> {device.status === '持有' ? '使用中' : '已归档'}</span>
+              <button ref={art} className={`exhibit-aperture ${device.id === 'iphone-air' ? 'exhibit-air' : ''}`} aria-label={`查看并编辑 ${device.name}`} onClick={() => onEdit(device.id)} onPointerMove={event => {
+                if (event.pointerType !== 'mouse' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+                const rect = event.currentTarget.getBoundingClientRect();
+                event.currentTarget.style.setProperty('--tilt-y', `${((event.clientX - rect.left) / rect.width - .5) * 10}deg`);
+                event.currentTarget.style.setProperty('--tilt-x', `${((event.clientY - rect.top) / rect.height - .5) * -8}deg`);
+              }} onPointerLeave={resetTilt}>
+                <div className="exhibit-art" key={device.id}>{device.image ? <img src={device.image} alt={device.name} fetchPriority="high" /> : <span className="exhibit-no-image">{device.name}</span>}</div>
+                <span className="exhibit-open"><ArrowUpRight /></span>
+              </button>
+              <span className="exhibit-date" key={`date-${device.id}`}>{dateLabel(device.purchaseDate)} — {device.status === '持有' ? '至今' : dateLabel(device.usageEnd || device.archivedDate)}</span>
+            </div>
+            <div className="exhibit-next">
+              {next && <button onClick={() => select(next.id)} aria-label={`下一件：${next.name}`}><span className="exhibit-next-label">下一件<ArrowRight /></span><span className="exhibit-next-window">{next.image ? <img src={next.image} alt="" /> : next.name}</span><span className="exhibit-next-name">{next.name}</span></button>}
+            </div>
+            <div className="exhibit-title" key={`title-${device.id}`} aria-live="polite"><span>{String(index + 1).padStart(2, '0')} / {String(visible.length).padStart(2, '0')}</span><h1>{device.name}</h1><button onClick={() => switchScene('costs')}>查看这件物品的成本曲线<ArrowUpRight /></button></div>
+            <dl className="exhibit-facts" key={`facts-${device.id}`}>
+              <div><dt>{device.status === '持有' ? '已使用' : '共使用'}</dt><dd>{days === null || !Number.isFinite(days) ? '—' : <>{days.toLocaleString('zh-CN')}<small> 天</small></>}</dd></div>
+              <div><dt>净投入</dt><dd>{device.purchasePrice === 0 && device.additional === 0 ? '待补充' : money(device.purchasePrice + device.additional - (device.status === '归档' ? device.archivedPrice : 0))}</dd></div>
+              <div><dt>平均每天</dt><dd>{history && !history.empty ? money(history.current) : '—'}</dd></div>
+            </dl>
+            <div className="exhibit-mobile-controls"><button aria-label="上一件设备" disabled={visible.length < 2} onClick={() => select(visible[(index - 1 + visible.length) % visible.length].id)}><ChevronLeft /></button><span>{String(index + 1).padStart(2, '0')} <i>/ {String(visible.length).padStart(2, '0')}</i></span><button aria-label="下一件设备" disabled={!next} onClick={() => next && select(next.id)}><ChevronRight /></button></div>
+          </> : <div className="exhibit-empty">暂无{status === '归档' ? '已归档' : '使用中'}物品<button onClick={() => setStatus('全部')}>查看全部</button></div>}
+        </section> : scene === 'timeline' ? <section className="exhibit-data-scene exhibit-time-scene" key="timeline">
+          <header className="exhibit-chapter"><div><p>使用时间轴</p><h1>时间，留下痕迹。</h1></div><span>{today ? `${devices.map(d => d.purchaseDate).filter(Boolean).sort()[0]?.slice(0,4) || ''} — ${today.slice(0,4)}` : ''}</span></header>
+          <div className="exhibit-timeline">{renderSection('timeline')}</div>
+          <button className="exhibit-scene-link" onClick={() => switchScene('costs')}>再看看，每一天的花费<ArrowRight /></button>
+        </section> : <section className="exhibit-data-scene exhibit-cost-scene" key="costs">
+          <header className="exhibit-chapter"><div><p>每日平均成本</p><h1>越用，越值得。</h1></div><button className="exhibit-scene-link" onClick={() => onNavigate('costs')}>成本排名<ArrowUpRight /></button></header>
+          <div className="story-cost"><CostHistory devices={devices} today={today} appearance="story" initialDeviceId={device?.id} /></div>
+        </section>}
+      </div>
     </div>
   );
 }

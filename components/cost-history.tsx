@@ -9,12 +9,13 @@ import { buildCostHistory, type HistoryDevice } from '@/lib/cost-history';
 const shortDate = (value: number) => new Date(value).toISOString().slice(0, 10).replaceAll('-', '/');
 const currency = (value: number) => `¥${value.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-export function CostHistory({ devices, today, appearance = 'panel' }: {
+export function CostHistory({ devices, today, appearance = 'panel', initialDeviceId = 'iphone-14-pro' }: {
   devices: (HistoryDevice & { image?: string })[];
   today: string;
   appearance?: 'panel' | 'story';
+  initialDeviceId?: string;
 }) {
-  const [deviceId, setDeviceId] = useState('iphone-14-pro');
+  const [deviceId, setDeviceId] = useState(initialDeviceId);
   const [view, setView] = useState<{ id: string; start: number; end: number } | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
   const currentRange = useRef({ start: 0, end: 0 });
