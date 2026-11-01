@@ -2925,7 +2925,7 @@ footer {
 .content-wrap:has(> .journey-page) > footer { display: none; }
 .journey-page { font-family: 'Objects Sans',sans-serif; background: #f5f5f7; }
 .journey-page button:focus-visible, .journey-page a:focus-visible { outline: 2px solid currentColor; outline-offset: 6px; border-radius: 3px; }
-.journey-track { --camera-scale: 2; --surface-light: 0; --frame-inset: 0px; --frame-radius: 0px; --scene-light: 0; --cue-opacity: 1; position: relative; height: 220svh; color: #f7f5ef; background: #16191e; }
+.journey-track { --camera-scale: 2; --artwork-opacity: 0; --surface-light: 0; --frame-inset: 0px; --frame-radius: 0px; --scene-light: 0; --cue-opacity: 1; position: relative; height: 220svh; color: #f7f5ef; background: #16191e; }
 .journey-scene { position: sticky; top: 0; height: 100svh; width: 100%; overflow: hidden; isolation: isolate; background: #f5f5f7; }
 .journey-plane { position: absolute; width: 1200px; height: 800px; left: 50%; top: 50%; margin: -400px 0 0 -600px; transform: scale(var(--camera-scale)) rotate(-6deg); transform-origin: center; will-change: transform; }
 .journey-object { position: absolute; width: var(--object-w); height: var(--object-h); left: calc(50% + var(--object-x) - var(--object-w) / 2); top: calc(50% + var(--object-y) - var(--object-h) / 2); transform: rotate(var(--object-angle)); }
@@ -2933,7 +2933,7 @@ footer {
 .journey-object-0 { z-index: 2; }
 .journey-object-0 img { filter: drop-shadow(4px 9px 8px #0004); }
 .journey-set { position: absolute; inset: 0; background: #191c21; clip-path: inset(var(--frame-inset) round var(--frame-radius)); }
-.journey-surface { position: absolute; inset: 0; background: #e5e5e8; opacity: var(--surface-light); }
+.journey-surface { position: absolute; inset: 0; background: #e9e8e4; opacity: var(--surface-light); }
 .journey-daylight { position: absolute; inset: 0; background: #f5f5f7; opacity: var(--scene-light); pointer-events: none; }
 .journey-first-caption { position: absolute; left: 40px; bottom: 36px; display: flex; flex-direction: column; gap: 8px; opacity: var(--cue-opacity); color: #f7f5ef; font-size: 11px; }
 .journey-first-caption > span:last-child { font-size: 9px; color: #b5b6b8; }
@@ -3028,3 +3028,25 @@ footer {
 .journey-shortcuts { text-shadow: 0 2px 6px #000b; }
 
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .journey-daylight { display: none; } }
+
+/* One editorial drawing under the original photographs, revealed by the pull-back. */
+.journey-illustration { position: absolute; inset: 0; width: 1200px; height: 800px; opacity: var(--artwork-opacity); pointer-events: none; }
+.journey-clock { stroke: #8b99a4; stroke-width: 1.5; }
+.journey-clock > circle:first-child { stroke-width: 1.1; }
+.journey-clock > circle:nth-child(2) { stroke-width: 1.8; stroke-linecap: round; opacity: .65; }
+.journey-clock .journey-clock-accent { stroke: #b77e57; stroke-width: 3; }
+.journey-clock-hands { stroke-width: 1; opacity: .5; }
+.journey-cable { stroke: #8493a0; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: .65; }
+.journey-cable > path + path { stroke-width: 1.5; }
+.journey-editorial { position: absolute; inset: 0; pointer-events: none; color: #404953; opacity: var(--artwork-opacity); }
+.journey-editorial-title { position: absolute; left: 6.3%; top: 9%; font-size: clamp(24px,2.7vw,42px); line-height: 1.2; font-weight: 600; letter-spacing: -.055em; }
+.journey-editorial-title > span { color: #b77e57; }
+.journey-yearline { position: absolute; left: 6.3%; bottom: 9%; display: flex; align-items: center; gap: 15px; font-size: 10px; font-variant-numeric: tabular-nums; color: #66727c; }
+.journey-yearline > div { width: 130px; height: 12px; display: flex; justify-content: space-between; border-bottom: 1px solid #8493a080; }
+.journey-yearline i { display: block; height: 5px; width: 1px; background: #8493a080; align-self: flex-end; }
+.journey-yearline i:first-child, .journey-yearline i:last-child { height: 10px; }
+@media (max-width:609px), (max-aspect-ratio:1/1) {
+  .journey-editorial-title { left: 10%; top: 8%; font-size: 26px; }
+  .journey-yearline { left: 10%; bottom: 8%; gap: 10px; font-size: 9px; }
+  .journey-yearline > div { width: 96px; }
+}

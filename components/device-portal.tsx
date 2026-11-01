@@ -27,6 +27,9 @@ export function DevicePortal({ devices, today, onNavigate, onDetails, renderSect
 }) {
   const track = useRef<HTMLElement>(null);
   const active = devices.filter(d => d.status === '持有');
+  const firstYear = devices.map(d => d.purchaseDate).filter(Boolean).sort()[0]?.slice(0, 4);
+  const currentYear = today.slice(0, 4);
+  const yearMarks = Math.max(2, Math.min(12, Number(currentYear) - Number(firstYear) + 1 || 7));
   const stageDevices = positions.map((position, i) => ({ ...position, device: devices.find(d => d.id === position.id) || (i === 0 ? devices.find(d => d.image) : undefined) })).filter((item, index, all) => item.device?.image && all.findIndex(other => other.device?.id === item.device?.id) === index);
 
   useEffect(() => {
@@ -47,6 +50,7 @@ export function DevicePortal({ devices, today, onNavigate, onDetails, renderSect
       const camera = smooth(progress / .78);
       // Every object stays fixed on one plane. The camera changes scale only.
       element.style.setProperty('--camera-scale', String(close * Math.pow(wide / close, camera)));
+      element.style.setProperty('--artwork-opacity', String(smooth((progress - .28) / .32)));
       element.style.setProperty('--surface-light', String(smooth((progress - .12) / .48)));
       element.style.setProperty('--frame-inset', `${inset * smooth((progress - .35) / .35)}px`);
       element.style.setProperty('--frame-radius', `${28 * smooth((progress - .35) / .35)}px`);
@@ -84,8 +88,25 @@ export function DevicePortal({ devices, today, onNavigate, onDetails, renderSect
           <div className="journey-set">
             <div className="journey-surface" />
             <div className="journey-plane">
+              <svg className="journey-illustration" viewBox="0 0 1200 800" fill="none" aria-hidden="true">
+                <g className="journey-clock">
+                  <circle cx="600" cy="400" r="248" strokeDasharray="1180 380" transform="rotate(-92 600 400)" />
+                  <circle cx="600" cy="400" r="265" strokeDasharray="1 13" />
+                  {Array.from({ length: 12 }, (_, i) => <path key={i} d="M600 161V175" transform={`rotate(${i * 30} 600 400)`} />)}
+                  <path className="journey-clock-accent" d="M434 216A248 248 0 0 1 648 157" />
+                  <path d="M600 400L600 251M600 400L704 460" className="journey-clock-hands" />
+                </g>
+                <g className="journey-cable">
+                  <path d="M40 440C100 412 154 435 166 490C181 557 103 591 93 548C81 498 184 521 245 548C309 576 310 697 426 729C533 758 655 702 762 721C876 741 985 725 1060 676" />
+                  <path d="M1060 676l28-17 7 11-28 17zM1086 663l14-9 4 6-14 9M1089 667l14-9" />
+                </g>
+              </svg>
             {stageDevices.map(({ device, x, y, w, h, angle }, i) => <div key={device!.id} className={`journey-object journey-object-${i}`} style={{ '--object-x': `${x}px`, '--object-y': `${y}px`, '--object-w': `${w}px`, '--object-h': `${h}px`, '--object-angle': `${angle}deg` } as CSSProperties}><img src={device!.image} alt="" fetchPriority={i === 0 ? 'high' : 'auto'} decoding="async" /></div>)}
             </div>
+          </div>
+          <div className="journey-editorial" aria-hidden="true">
+            <div className="journey-editorial-title">我的物品<span>。</span></div>
+            {firstYear && currentYear && <div className="journey-yearline"><span>{firstYear}</span><div>{Array.from({ length: yearMarks }, (_, i) => <i key={i} />)}</div><span>{currentYear}</span></div>}
           </div>
           <div className="journey-daylight" />
           <div className="journey-first-caption"><span>{stageDevices[0]?.device?.name}</span><span>{stageDevices[0]?.device ? `${dateLabel(stageDevices[0].device.purchaseDate)} — ${stageDevices[0].device.status === '持有' ? '至今' : dateLabel(stageDevices[0].device.usageEnd)}` : ''}</span></div>
