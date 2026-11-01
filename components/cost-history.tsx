@@ -27,7 +27,7 @@ export function CostHistory({ devices, today, appearance = 'panel', initialDevic
   const last = Math.max(first + 86400000, history?.end ?? first);
   const cutoff = new Date(last);
   cutoff.setUTCFullYear(cutoff.getUTCFullYear() - 2);
-  const start = view && view.id === device?.id ? view.start : Math.max(first, cutoff.getTime());
+  const start = view && view.id === device?.id ? view.start : first;
   const end = view && view.id === device?.id ? view.end : last;
   currentRange.current = { start, end };
   const points = history?.points ?? [];
@@ -123,11 +123,11 @@ export function CostHistory({ devices, today, appearance = 'panel', initialDevic
           <h2 id="cost-history-title">每日平均成本</h2>
         </div>
         <div className="period-switch" role="group" aria-label="曲线时间范围">
-          <button className={period === 'recent' ? 'selected' : ''} aria-pressed={period === 'recent'} onClick={() => setPeriod('recent')}>近两年</button>
           <button className={period === 'all' ? 'selected' : ''} aria-pressed={period === 'all'} onClick={() => setPeriod('all')}>全部</button>
+          <button className={period === 'recent' ? 'selected' : ''} aria-pressed={period === 'recent'} onClick={() => setPeriod('recent')}>近两年</button>
         </div>
       </header>
-      <NativeSelect className="cost-history-picker" value={device.id} aria-label="查看设备成本曲线" onChange={event => setDeviceId(event.target.value)}>
+      <NativeSelect className="cost-history-picker" value={device.id} aria-label="查看设备成本曲线" onChange={event => { setDeviceId(event.target.value); setView(null); }}>
         {devices.map(item => <NativeSelectOption value={item.id} key={item.id}>{item.name}{devices.some(other => other.id !== item.id && other.name === item.name) ? ` · ${item.purchaseDate}` : ''}{item.status === '归档' ? ' · 归档' : ''}</NativeSelectOption>)}
       </NativeSelect>
       {history && !history.empty ? <>
