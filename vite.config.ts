@@ -13,7 +13,7 @@ const { d1, r2 } = hostingConfig;
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === 'seatbelt';
 
 const localBindingConfig = {
-  name: 'device-tracker',
+  name: 'kept',
   compatibility_date: '2026-05-15',
   main: 'vinext/server/fetch-handler',
   compatibility_flags: ['nodejs_compat'],

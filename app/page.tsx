@@ -956,7 +956,7 @@ export default function HomePage() {
     );
     const link = document.createElement('a');
     link.href = url;
-    link.download = `我的物品_${localDate()}.csv`;
+    link.download = `物历_${localDate()}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -1403,7 +1403,7 @@ export default function HomePage() {
     <main className={`min-h-screen bg-background text-foreground ${viewMode === 'home' ? 'is-exhibit-home' : ''}`}>
       <header className="site-navigation">
         <div className="navigation-inner">
-          <button className="navigation-title" onClick={() => changeView('home')} aria-label="返回首页">我的物品</button>
+          <button className="navigation-title" onClick={() => changeView('home')} aria-label="返回首页">物历 <span className="kept-wordmark">· kept</span></button>
           <div className="navigation-actions">
             <input
               ref={fileInput}
