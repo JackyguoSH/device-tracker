@@ -3,15 +3,11 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { ArrowDown, ArrowUpRight, ArrowRight } from 'lucide-react';
 import { CostHistory } from '@/components/cost-history';
-import { buildCostHistory, HISTORY_DAY, type HistoryDevice } from '@/lib/cost-history';
+import type { HistoryDevice } from '@/lib/cost-history';
 
 type PortalDevice = HistoryDevice & { image: string; category: string };
 type Destination = 'timeline' | 'costs' | 'devices';
 const dateLabel = (value: string) => value.replaceAll('-', '.');
-const dayCount = (device: PortalDevice, today: string) => {
-  const value = Math.round((Date.parse(`${device.usageEnd || today}T00:00:00Z`) - Date.parse(`${device.purchaseDate}T00:00:00Z`)) / HISTORY_DAY);
-  return Number.isFinite(value) ? Math.max(0, value) : null;
-};
 const positions = [
   { id: 'iphone-14-pro', x: 0, y: 0, w: 205, h: 330, angle: -8 },
   { id: 'macbook-air', x: -410, y: -150, w: 450, h: 310, angle: 12 },
@@ -22,114 +18,81 @@ const positions = [
   { id: 'apple-tv-4k', x: 210, y: -340, w: 190, h: 150, angle: 10 },
 ];
 
-export function DevicePortal({ devices, today, onNavigate, onDetails, onEdit, renderSection }: {
+export function DevicePortal({ devices, today, onNavigate, onDetails, renderSection }: {
   devices: PortalDevice[];
   today: string;
   onNavigate: (destination: Destination) => void;
   onDetails: () => void;
-  onEdit: (id: string) => void;
   renderSection: (destination: Destination) => ReactNode;
 }) {
   const track = useRef<HTMLElement>(null);
-  const lastBlock = useRef<HTMLElement>(null);
-  const firstYear = devices.map(d => d.purchaseDate).filter(Boolean).sort()[0]?.slice(0, 4);
   const active = devices.filter(d => d.status === '持有');
-  const featured = ['ipad-pro-2020', 'iphone-14-pro', 'macbook-air', 'homepod-mini-2020', 'iphone-air-2025'].map(id => devices.find(d => d.id === id)).filter((d): d is PortalDevice => !!d);
   const stageDevices = positions.map((position, i) => ({ ...position, device: devices.find(d => d.id === position.id) || (i === 0 ? devices.find(d => d.image) : undefined) })).filter((item, index, all) => item.device?.image && all.findIndex(other => other.device?.id === item.device?.id) === index);
 
   useEffect(() => {
     const element = track.current;
-    const last = lastBlock.current;
-    if (!element || !last) return;
+    if (!element) return;
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
     let frame = 0;
-    let progress = 0;
     let end = 1;
-    let knee = .8;
     let top = 0;
     let close = 1;
     let wide = .6;
-    let target = 0;
+    let inset = 32;
     const clamp = (n: number) => Math.max(0, Math.min(1, n));
+    const smooth = (n: number) => { const t = clamp(n); return t * t * (3 - 2 * t); };
     const draw = () => {
       frame = 0;
-      progress += (target - progress) * .22;
-      if (Math.abs(target - progress) < .0003) progress = target;
-      const story = clamp(progress / knee);
-      const camera = 1 - Math.pow(1 - clamp(story / .69), 3);
-      element.style.setProperty('--camera-scale', String(close + (wide - close) * camera));
-      element.style.setProperty('--phone-drift', `${360 * camera}px`);
-      element.style.setProperty('--camera-turn', `${-6 * (1 - camera)}deg`);
-      element.style.setProperty('--field-dim', String(.68 * clamp((story - .03) / .22)));
-      element.style.setProperty('--scene-light', String(clamp((progress - knee) / (1 - knee))));
-      element.style.setProperty('--cue-opacity', String(1 - clamp(progress * 10)));
-      if (progress !== target) frame = requestAnimationFrame(draw);
+      const progress = motion.matches ? 0 : clamp((window.scrollY - top) / end);
+      const camera = smooth(progress / .78);
+      // Every object stays fixed on one plane. The camera changes scale only.
+      element.style.setProperty('--camera-scale', String(close * Math.pow(wide / close, camera)));
+      element.style.setProperty('--surface-light', String(smooth((progress - .12) / .48)));
+      element.style.setProperty('--frame-inset', `${inset * smooth((progress - .35) / .35)}px`);
+      element.style.setProperty('--frame-radius', `${28 * smooth((progress - .35) / .35)}px`);
+      element.style.setProperty('--scene-light', String(smooth((progress - .84) / .16)));
+      element.style.setProperty('--cue-opacity', String(1 - smooth(progress / .13)));
     };
-    const schedule = () => {
-      if (motion.matches) return;
-      target = clamp((window.scrollY - top) / end);
-      if (!frame) frame = requestAnimationFrame(draw);
-    };
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(draw); };
     const measure = () => {
-      const viewport = window.innerHeight;
-      close = Math.min(2.15, window.innerWidth / 245, viewport / 400);
-      wide = Math.min(window.innerWidth / 1260, viewport / 860) * .92;
-      if (motion.matches) {
-        element.style.setProperty('--camera-scale', String(wide));
-        element.style.setProperty('--phone-drift', '0px');
-        return;
-      }
-      const bottom = last.offsetTop + last.offsetHeight;
-      end = bottom + .75 * viewport;
-      knee = bottom / end;
-      element.style.height = `${end + viewport}px`;
+      close = Math.min(2.15, window.innerWidth / 245, window.innerHeight / 400);
+      wide = Math.min(window.innerWidth / 1260, window.innerHeight / 860) * .86;
+      if (window.innerWidth <= 609 || window.innerHeight > window.innerWidth) wide = Math.max(.5, wide);
+      if (motion.matches) close = Math.min(close, window.innerHeight * .6 / 330);
+      inset = window.innerWidth <= 609 ? 16 : 40;
+      end = Math.max(1, element.offsetHeight - window.innerHeight);
       top = element.getBoundingClientRect().top + window.scrollY;
       schedule();
     };
-    const observer = new ResizeObserver(measure);
-    observer.observe(last);
     window.addEventListener('resize', measure);
-    motion.addEventListener('change', measure);
     window.addEventListener('scroll', schedule, { passive: true });
+    motion.addEventListener('change', measure);
     measure();
     return () => {
-      observer.disconnect(); cancelAnimationFrame(frame);
-      window.removeEventListener('scroll', schedule);
+      cancelAnimationFrame(frame);
       window.removeEventListener('resize', measure);
+      window.removeEventListener('scroll', schedule);
       motion.removeEventListener('change', measure);
     };
-  }, [featured.length, stageDevices.length]);
+  }, []);
 
   return (
     <div className="journey-page">
       <section className="journey-track" ref={track} aria-label="物品与时间">
+        <h1 className="sr-only">我的物品</h1>
         <div className="journey-scene" aria-hidden="true">
-          <div className="journey-plane">
+          <div className="journey-set">
+            <div className="journey-surface" />
+            <div className="journey-plane">
             {stageDevices.map(({ device, x, y, w, h, angle }, i) => <div key={device!.id} className={`journey-object journey-object-${i}`} style={{ '--object-x': `${x}px`, '--object-y': `${y}px`, '--object-w': `${w}px`, '--object-h': `${h}px`, '--object-angle': `${angle}deg` } as CSSProperties}><img src={device!.image} alt="" fetchPriority={i === 0 ? 'high' : 'auto'} decoding="async" /></div>)}
+            </div>
           </div>
-          <div className="journey-shade" />
           <div className="journey-daylight" />
           <div className="journey-first-caption"><span>{stageDevices[0]?.device?.name}</span><span>{stageDevices[0]?.device ? `${dateLabel(stageDevices[0].device.purchaseDate)} — ${stageDevices[0].device.status === '持有' ? '至今' : dateLabel(stageDevices[0].device.usageEnd)}` : ''}</span></div>
           <div className="journey-scroll-cue"><ArrowDown /><span>向下，走过时间</span></div>
         </div>
         <nav className="journey-shortcuts" aria-label="首页导航"><a href="#journey-records">使用历程</a><a href="#journey-cost">每日成本</a><button onClick={onDetails}>全部记录<ArrowUpRight /></button></nav>
-        <div className="journey-content">
-          <header className="journey-intro"><p>{firstYear && today ? `${firstYear} — ${today.slice(0, 4)}` : '我的物品'}</p><h1><span>我的物品。</span><span>从购入，</span><span>到今天，</span><span>每一天。</span></h1></header>
-          <div className="journey-moments">
-            {featured.map((device, i) => {
-              const history = today ? buildCostHistory(device, today) : null;
-              const days = today ? dayCount(device, today) : null;
-              const net = device.purchasePrice + device.additional - (device.status === '归档' ? device.archivedPrice : 0);
-              return <article ref={i === featured.length - 1 ? lastBlock : undefined} className={`journey-moment journey-moment-${i}`} key={device.id}>
-                <button onClick={() => onEdit(device.id)} aria-label={`查看并编辑 ${device.name}`}><img src={device.image} alt="" /><span className="journey-moment-name">{device.name}<ArrowUpRight /></span></button>
-                <p className="journey-moment-value">{i === 1 && history && !history.empty ? <>{history.current.toFixed(2)}<small> 元 / 天</small></> : <>{days === null ? '—' : days.toLocaleString('zh-CN')}<small> 天</small></>}</p>
-                <p className="journey-moment-date">{dateLabel(device.purchaseDate)} — {device.status === '持有' ? '至今' : dateLabel(device.usageEnd || device.archivedDate)}</p>
-                {device.status === '归档' && device.purchasePrice > 0 && <p className="journey-moment-net">净花费 ¥{net.toLocaleString('zh-CN')}</p>}
-              </article>;
-            })}
-            {!featured.length && <article className="journey-moment journey-moment-empty" ref={lastBlock}><p>物品的故事，从这里开始。</p><button onClick={onDetails}>查看记录<ArrowUpRight /></button></article>}
-          </div>
-        </div>
+
       </section>
 
       <section className="journey-records" id="journey-records" aria-labelledby="journey-records-title">

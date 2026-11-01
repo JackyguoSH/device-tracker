@@ -1446,7 +1446,6 @@ export default function HomePage() {
             today={today}
             onNavigate={section => changeView('overview', section)}
             onDetails={() => { setFilter('全部'); setQuery(''); changeView('details'); }}
-            onEdit={id => { const device = devices.find(item => item.id === id); if (device) openEdit(device); }}
             renderSection={renderWorkspaceSection}
           />
         ) : viewMode === 'overview' ? (
