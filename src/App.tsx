@@ -27,7 +27,7 @@ import { fromCsv, toCsv } from "./lib/csv";
 import { SNAPSHOT, summarize } from "./lib/score";
 import { Score } from "./components/Score";
 import { DeviceEditor } from "./components/DeviceEditor";
-import { Modal, Segmented } from "./components/Shared";
+import { CostHelp, Modal, Segmented } from "./components/Shared";
 import { Portfolio } from "./components/Portfolio";
 
 const STORAGE = "wuji-score-devices-v1";
@@ -343,7 +343,7 @@ export default function App() {
               </div>
             </div>
             <div className="hero-daily">
-              <p className="metric-label">当前日均合计</p>
+              <p className="metric-label">当前日均合计 <CostHelp /></p>
               <div className="main-number">
                 <span>¥</span>
                 {summary.daily.toLocaleString("zh-CN", {
@@ -359,16 +359,7 @@ export default function App() {
             <div className="hero-investment">
               <p className="metric-label">当前持有投入</p>
               <strong>{money(summary.total)}</strong>
-              <p className="caption">
-                {summary.incomplete ? (
-                  <>
-                    <span className="pending-dot" />
-                    {summary.incomplete} 件价格待补充 · 仅计已知支出
-                  </>
-                ) : (
-                  "购入与已发生追加的累计投入"
-                )}
-              </p>
+
             </div>
           </section>
           {view === "score" ? (
@@ -504,11 +495,7 @@ export default function App() {
                     归档回收
                   </span>
                 </div>
-                <p>
-                  {mode === "timeline"
-                    ? "点击设备展开曲线 · 点击刻度查看支出"
-                    : "从高到低 · 年均 = 日均 × 365，非年度实际支出"}
-                </p>
+
               </div>
             </section>
           ) : (

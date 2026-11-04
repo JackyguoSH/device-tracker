@@ -106,7 +106,7 @@ export function DeviceEditor({
               <option>归档</option>
             </select>
           </label>
-          {field("purchasePrice", "购入金额（¥，0 表示待补充）", "number")}
+          {field("purchasePrice", "购入金额（¥）", "number")}
           {field("purchaseDate", "购入日期", "date")}
           {field("channel", "购买渠道")}
           {field("warrantyEnd", "保修截止", "date")}

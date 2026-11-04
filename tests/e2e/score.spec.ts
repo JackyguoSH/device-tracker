@@ -3,7 +3,7 @@ import { toCsv } from "../../src/lib/csv";
 import { initialDevices } from "../../src/data/devices";
 const row = (id: string) => `[data-device="${id}"]`;
 
-test("exact snapshot, transparent missing prices and real archive endpoints", async ({
+test("exact snapshot, zero-cost devices and real archive endpoints", async ({
   page,
 }) => {
   const errors: string[] = [];
@@ -17,13 +17,13 @@ test("exact snapshot, transparent missing prices and real archive endpoints", as
   await expect(page.locator(".score-row.archived")).toHaveCount(2);
   await expect(
     page.locator(`${row("airpods-pro-2")} .device-label`),
-  ).toContainText("价格待补充");
+  ).not.toContainText("价格待补充");
   await expect(
     page.locator(`${row("airpods-pro-2")} .device-cost`),
   ).toContainText("¥0.35");
   await expect(
     page.locator(`${row("homepod-mini-2024")} .device-cost`),
-  ).toHaveText("—待补充");
+  ).toHaveText("¥0.00/天");
   const archivedWidth = await page
     .locator(`${row("iphone-air-2025")} .track-bar`)
     .evaluate((el) => parseFloat((el as HTMLElement).style.width));
@@ -46,9 +46,8 @@ test("event expands in place, reveals its date and detail, then collapses", asyn
   await expect(
     target.getByRole("region", { name: "选中事件明细" }),
   ).toContainText("Apple Pencil 笔尖 +¥179");
-  await expect(target.locator(".time-explorer label")).toContainText(
-    "2023.04.06",
-  );
+  await expect(target.locator(".time-explorer")).toHaveCount(0);
+  await expect(target.locator(".line-chart .cursor-line")).toHaveCount(1);
   await expect(
     target.getByRole("button", { name: "完整持有期", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
@@ -221,7 +220,7 @@ test("portrait tracks fit the screen below readable device headings and details"
     const label = (await target.locator(".device-label").boundingBox())!;
     const track = (await target.locator(".track-cell").boundingBox())!;
     expect(track.y).toBeGreaterThanOrEqual(label.y + label.height - 1);
-    expect(track.width).toBeGreaterThan(width - 60);
+    expect(track.width).toBeGreaterThan(width - 80);
     expect(await page.locator("body").evaluate((e) => e.scrollWidth)).toBe(width);
   }
   await page.setViewportSize({ width: 390, height: 844 });

@@ -194,11 +194,13 @@ test("missing recovery dates fall back to usage end; future recoveries are not d
     100,
   );
 });
-test("missing prices are labeled, future and missing purchase dates do not calculate", () => {
+test("zero purchase price is valid zero spend; invalid purchase dates do not calculate", () => {
   const h = buildCostHistory({ ...base, purchasePrice: 0 }, "2026-01-11")!;
-  assert.equal(h.empty, true);
-  assert.equal(h.missingPrice, true);
-  assert.match(h.note, /购入价待补充/);
+  assert.equal(h.empty, false);
+  assert.equal(h.current, 0);
+  assert.ok(h.points.every((p) => p.daily === 0));
+  assert.equal(h.missingPrice, false);
+  assert.doesNotMatch(h.note, /购入价待补充/);
   assert.equal(buildCostHistory({ ...base, purchaseDate: "" }, today), null);
   assert.equal(
     buildCostHistory({ ...base, purchaseDate: "2027-01-01" }, today),
@@ -215,7 +217,7 @@ test("current total is sum of current per-device costs; missing price extras are
   const airpods = initialDevices.find((d) => d.id === "airpods-pro-2")!;
   const h = historyFor(airpods, initialDevices, today)!;
   assert.equal(h.points.at(-1)!.total, 348);
-  assert.equal(h.missingPrice, true);
+  assert.equal(h.missingPrice, false);
   const sum = active.reduce(
     (sum, d) => sum + historyFor(d, initialDevices, today)!.current,
     0,

@@ -101,7 +101,6 @@ export function LineChart({
         role="img"
         aria-label={label}
       >
-        <title>{label}</title>
         {scale.ticks.map((value, i) => {
           return (
             <g key={i}>

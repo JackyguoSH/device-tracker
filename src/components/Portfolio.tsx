@@ -123,8 +123,6 @@ export function Portfolio({
           回看当前 {summary.active.length}{" "}
           件在用设备：各日只计已发生投入，购入前不计；归档设备不纳入。纵轴使用局部刻度{" "}
           {money(min)}–{money(max)}。
-          {summary.incomplete > 0 &&
-            `有 ${summary.incomplete} 件购入价待补充，合计仅包含已知支出。`}
         </p>
         {changes.length > 0 && (
           <details className="archive-details">

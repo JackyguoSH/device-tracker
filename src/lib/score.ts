@@ -104,7 +104,7 @@ export function summarize(
       (sum, d) => sum + (histories.get(d.id)?.points.at(-1)?.total ?? 0),
       0,
     ),
-    incomplete: active.filter((d) => d.purchasePrice === 0).length,
+    incomplete: 0,
     longest: Math.max(0, ...active.map((d) => daysHeld(d, devices, today))),
   };
 }

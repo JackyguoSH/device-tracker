@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Box, X } from "lucide-react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { Box, Info, X } from "lucide-react";
 import { productImage, type Device } from "../lib/model";
 export function Photo({
   device,
@@ -97,4 +97,18 @@ export function Segmented<T extends string>({
       ))}
     </div>
   );
+}
+
+export function CostHelp() {
+  const id = useId();
+  const [open, setOpen] = useState(false);
+  return <span className={`cost-help ${open ? "is-open" : ""}`}>
+    <button type="button" aria-label="日均成本计算说明" aria-describedby={id} aria-expanded={open}
+      onClick={() => setOpen(!open)} onBlur={() => setOpen(false)} onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}>
+      <Info size={14} />
+    </button>
+    <span id={id} className="cost-help-tooltip" role="tooltip">
+      日均 =（购入 + 已发生追加 − 已回收金额）÷ 使用天数。购入当天至少计 1 天；停用后回收不增加天数。
+    </span>
+  </span>;
 }

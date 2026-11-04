@@ -309,19 +309,9 @@ function ScoreRow({
           <span className="device-text">
             <span className="device-name">{d.name}</span>
             <span className="device-meta">
-              {d.purchasePrice === 0 ? (
-                <span className="missing-label">价格待补充</span>
-              ) : (
-                <>
-                  {d.category}
-                  <span className="meta-dot">·</span>
-                  {days
-                    ? `${days.toLocaleString()} 天`
-                    : d.purchaseDate > today
-                      ? "计划购入"
-                      : "日期待补充"}
-                </>
-              )}
+              {d.category}
+              <span className="meta-dot">·</span>
+              {days ? `${days.toLocaleString()} 天` : d.purchaseDate > today ? "计划购入" : "日期待补充"}
               {archived && <span className="archive-badge">已归档</span>}
             </span>
           </span>
@@ -408,7 +398,7 @@ function ScoreRow({
         <button
           className="device-cost"
           onClick={onToggle}
-          aria-label={`${d.name} ${value}${h?.missingPrice ? "，价格待补充，仅已知支出" : ""}，展开详情`}
+          aria-label={`${d.name} ${value}，展开详情`}
         >
           <span>{value}</span>
           <small>

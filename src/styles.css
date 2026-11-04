@@ -2600,3 +2600,20 @@ summary:hover {
   .row-main:hover { background: transparent; }
   .is-open .row-main { background: var(--hover); }
 }
+
+/* Keep highlights away from row text and chart edges. */
+.row-main { padding: 0 12px; border-radius: 6px; }
+.row-main:hover, .is-open .row-main { background: var(--hover); }
+.line-chart svg:focus-visible { outline: 1px solid var(--line); outline-offset: -1px; }
+.metric-label, .detail-facts dt, .detail-chart h3 { display: flex; align-items: center; gap: 5px; }
+.cost-help { display: inline-flex; position: relative; vertical-align: middle; }
+.cost-help > button { width: 28px; height: 28px; min-height: 28px; padding: 0; border: 0; color: var(--quiet); border-radius: 50%; }
+.cost-help-tooltip { display: none; position: absolute; top: calc(100% + 6px); left: 0; transform: translateX(-30%); width: min(280px, calc(100vw - 64px)); padding: 12px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 7px; box-shadow: 0 6px 24px #0002; color: var(--text); font-size: 12px; font-weight: 400; line-height: 1.8; letter-spacing: 0; z-index: 30; }
+.cost-help:hover .cost-help-tooltip, .cost-help:focus-within .cost-help-tooltip, .cost-help.is-open .cost-help-tooltip { display: block; }
+@media(max-width:640px) {
+  .row-main { padding: 4px 12px; height: 108px; }
+  .device-label { padding-left: 2px; }
+  .device-cost { padding-right: 2px; }
+  .track-cell { margin-left: 4px; margin-right: 4px; }
+  .cost-help > button { width: 32px; height: 32px; }
+}

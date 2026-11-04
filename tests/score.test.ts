@@ -30,7 +30,7 @@ test("2026-11-03 snapshot matches every supplied daily value, days, and totals",
   assert.equal(s.daily.toFixed(2), "23.64");
   assert.equal(s.active.length, 8);
   assert.equal(s.archived, 2);
-  assert.equal(s.incomplete, 2);
+  assert.equal(s.incomplete, 0);
 });
 test("track events retain opening additions, estimated renewals, dates and recoveries from the engine", () => {
   for (const d of initialDevices) {

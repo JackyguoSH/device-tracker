@@ -46,8 +46,7 @@ export function buildCostHistory(device: HistoryDevice, today: string) {
     expenses.forEach(item => item.amount *= device.additional / listed);
     notes.push('明细与合计不符，按追加投入合计折算');
   }
-  const missingPrice = device.purchasePrice === 0;
-  if (missingPrice) notes.unshift('购入价待补充，仅计已记录支出');
+  const missingPrice = false;
   let recoveryDate = dateValue(device.archivedDate);
   if (device.status === '归档' && device.archivedPrice !== 0) {
     if (!Number.isFinite(recoveryDate)) {
@@ -71,5 +70,5 @@ export function buildCostHistory(device: HistoryDevice, today: string) {
     if (change) points.push({ date, days, total: total - change, daily: (total - change) / days, change: 0, event: '' });
     points.push({ date, days, total, daily: total / days, change, event: events.map(e => `${e.label} ${e.amount < 0 ? '−' : '+'}¥${Math.abs(e.amount).toLocaleString('zh-CN')}`).join('；') });
   }
-  return { points, start, end, usageEnd, current: totalAt(end) / daysAt(end), missingPrice, empty: missingPrice && device.additional === 0, note: notes.join(' · ') };
+  return { points, start, end, usageEnd, current: totalAt(end) / daysAt(end), missingPrice, empty: false, note: notes.join(' · ') };
 }

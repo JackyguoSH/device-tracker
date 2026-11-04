@@ -22,7 +22,7 @@ import {
 } from "../lib/model";
 import type { ScoreEvent } from "../lib/score";
 import { LineChart } from "./LineChart";
-import { Segmented } from "./Shared";
+import { CostHelp, Segmented } from "./Shared";
 
 export function ScoreDetail({
   device: d,
@@ -47,7 +47,6 @@ export function ScoreDetail({
 }) {
   const [range, setRange] = useState("year");
   const [forecastOn, setForecastOn] = useState(false);
-  const [offset, setOffset] = useState(0);
   const active = isCurrent(d, devices, today),
     days = daysHeld(d, devices, today);
   const end = h?.end ?? stamp(today),
@@ -79,7 +78,7 @@ export function ScoreDetail({
     const event = events.find((e) => e.key === selectedEvent);
     if (!event) return;
     if (event.date < end - 364 * DAY) setRange("all");
-    setOffset(Math.round((event.date - end) / DAY));
+
   }, [selectedEvent, events, end]);
   const recovery = useMemo(
     () =>
@@ -89,21 +88,6 @@ export function ScoreDetail({
         : 0,
     [d, devices, today, total],
   );
-  const minOffset = Math.min(
-    0,
-    Math.ceil(((points[0]?.date ?? end) - end) / DAY),
-  );
-  const safeOffset = Math.max(
-    minOffset,
-    Math.min(active && forecastOn ? 365 : 0, offset),
-  );
-  const inspectDate = end + safeOffset * DAY;
-  const inspectCost =
-    safeOffset > 0
-      ? total / (days + safeOffset)
-      : h
-        ? (pointAt(h, inspectDate)?.daily ?? h.points[0]?.daily)
-        : undefined;
   const targetDays = d.targetDaily
     ? Math.max(0, Math.ceil(total / d.targetDaily) - days)
     : undefined;
@@ -142,11 +126,7 @@ export function ScoreDetail({
         <div>
           <dt>购入金额</dt>
           <dd>
-            {d.purchasePrice ? (
-              money(d.purchasePrice)
-            ) : (
-              <span className="missing-label">价格待补充</span>
-            )}
+            {money(d.purchasePrice)}
           </dd>
         </div>
         <div>
@@ -154,7 +134,7 @@ export function ScoreDetail({
           <dd>{money(d.additional)}</dd>
         </div>
         <div>
-          <dt>{d.status === "归档" ? "已发生回收" : "累计已知投入"}</dt>
+          <dt>{d.status === "归档" ? "已发生回收" : "累计投入"}</dt>
           <dd>{d.status === "归档" ? money(recovery) : money(total)}</dd>
         </div>
         <div>
@@ -165,7 +145,7 @@ export function ScoreDetail({
           </dd>
         </div>
         <div>
-          <dt>日均 / 年均摊销</dt>
+          <dt>日均 / 年均摊销 <CostHelp /></dt>
           <dd>
             {h && !h.empty ? (
               <>
@@ -188,14 +168,13 @@ export function ScoreDetail({
         <div className="detail-chart">
           <div className="section-top">
             <h3>
-              日均成本曲线 <small>¥ / 天</small>
+              日均成本曲线 <CostHelp /> <small>¥ / 天</small>
             </h3>
             <Segmented
               label={`${d.name} 曲线范围`}
               value={range}
               onChange={(value) => {
                 setRange(value);
-                setOffset(0);
               }}
               options={[
                 { value: "year", label: "近一年" },
@@ -210,7 +189,7 @@ export function ScoreDetail({
                 forecast={forecast}
                 today={stamp(today)}
                 target={d.targetDaily}
-                selectedDate={safeOffset ? inspectDate : undefined}
+                selectedDate={selectedEvent ? events.find((e) => e.key === selectedEvent)?.date : undefined}
                 label={`${d.name} 日均成本曲线，当前 ${costLabel(h.current)}。${h.note}`}
               />
               <div className="chart-caption">
@@ -225,7 +204,6 @@ export function ScoreDetail({
                       checked={forecastOn}
                       onChange={(e) => {
                         setForecastOn(e.target.checked);
-                        setOffset(0);
                       }}
                     />
                     预测未来一年
@@ -238,39 +216,6 @@ export function ScoreDetail({
                   </span>
                 )}
               </div>
-              <div className="time-explorer">
-                <div>
-                  <label htmlFor={`explorer-${d.id}`}>
-                    {dateLabel(iso(inspectDate))}
-                    <span>{safeOffset > 0 ? " · 预测" : " · 当日记录"}</span>
-                  </label>
-                  <strong>
-                    {inspectCost !== undefined ? costLabel(inspectCost) : "—"}
-                    <small>/天</small>
-                  </strong>
-                </div>
-                <input
-                  id={`explorer-${d.id}`}
-                  aria-label={`${d.name} 查看日期`}
-                  type="range"
-                  min={minOffset}
-                  max={active && forecastOn ? 365 : 0}
-                  value={safeOffset}
-                  onChange={(e) => setOffset(Number(e.target.value))}
-                  aria-valuetext={`${dateLabel(iso(inspectDate))}，${costLabel(inspectCost ?? 0)} 每天`}
-                />
-                <div className="explorer-labels">
-                  <span>{dateLabel(iso(end + minOffset * DAY))}</span>
-                  <button className="text-button" onClick={() => setOffset(0)}>
-                    回到{active ? "统计日" : "最后记录"}
-                  </button>
-                  <span>
-                    {dateLabel(
-                      iso(end + (active && forecastOn ? 365 : 0) * DAY),
-                    )}
-                  </span>
-                </div>
-              </div>
               {difference !== undefined && (
                 <p className="caption comparison">
                   {difference >= 0 ? (
@@ -280,7 +225,6 @@ export function ScoreDetail({
                   )}
                   较一年前{difference >= 0 ? "降低" : "增加"}{" "}
                   {Math.abs(difference).toFixed(1)}%
-                  {h.missingPrice ? " · 仅已知支出" : ""}
                 </p>
               )}
             </>
@@ -306,11 +250,7 @@ export function ScoreDetail({
               </button>
             </div>
           )}
-          <p className="formula">
-            日均 =（购入 + 已发生追加 − 已回收金额）÷ 使用天数。购入当天至少计 1
-            天；停用后回收不增加天数。
-            {forecastOn && "预测假设没有新的追加或回收。"}
-          </p>
+
         </div>
         <aside className="detail-events" aria-label={`${d.name} 支出记录`}>
           <div className="section-top">
@@ -331,9 +271,7 @@ export function ScoreDetail({
                   <time>{dateLabel(iso(e.date))}</time>
                 </span>
                 <b>
-                  {e.kind === "purchase" && !d.purchasePrice
-                    ? "待补充"
-                    : `${e.amount < 0 ? "−" : "+"}${money(Math.abs(e.amount))}`}
+                  {`${e.amount < 0 ? "−" : "+"}${money(Math.abs(e.amount))}`}
                 </b>
               </button>
             ))}
