@@ -92,7 +92,6 @@ export function Portfolio({
       <div className="portfolio-trend">
         <div className="section-top">
           <div>
-            <p className="eyebrow">THE PASSAGE OF TIME</p>
             <h2>当前组合 · 日均成本趋势</h2>
           </div>
           <Segmented
@@ -119,11 +118,6 @@ export function Portfolio({
             统计日 <strong>{costLabel(summary.daily)}/天</strong>
           </span>
         </div>
-        <p className="formula">
-          回看当前 {summary.active.length}{" "}
-          件在用设备：各日只计已发生投入，购入前不计；归档设备不纳入。纵轴使用局部刻度{" "}
-          {money(min)}–{money(max)}。
-        </p>
         {changes.length > 0 && (
           <details className="archive-details">
             <summary>区间内 {changes.length} 天有投入变化</summary>
@@ -138,7 +132,6 @@ export function Portfolio({
       <div className="category-summary">
         <div className="section-top">
           <h2>投入的去向</h2>
-          <span className="caption">当前在用设备 · 已知投入</span>
         </div>
         <div className="category-table">
           <table>

@@ -148,9 +148,6 @@ export function Score(props: Props) {
   }));
   return (
     <>
-      <p className="mobile-scroll-hint">
-        点击设备查看成本曲线
-      </p>
       <div
         className={`score-scroll ${mode}`}
         ref={viewport}

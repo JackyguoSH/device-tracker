@@ -57,11 +57,9 @@ export default function App() {
   const [undo, setUndo] = useState<Device[] | null>(null);
   const [theme, setTheme] = useState(() => {
     try {
-      return (localStorage.getItem("wuji-score-theme") ?? localStorage.getItem("wuji-theme")) === "light"
-        ? "light"
-        : "dark";
+      return localStorage.getItem("kept-theme-v1") === "dark" ? "dark" : "light";
     } catch {
-      return "dark";
+      return "light";
     }
   });
   const [menu, setMenu] = useState(false);
@@ -93,7 +91,7 @@ export default function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     try {
-      localStorage.setItem("wuji-score-theme", theme);
+      localStorage.setItem("kept-theme-v1", theme);
     } catch {
       /* Theme works in memory too. */
     }
@@ -243,7 +241,6 @@ export default function App() {
           </div>
           {menu && (
             <div className="menu-panel glass" id="main-menu" ref={menuRef}>
-              <p className="eyebrow">kept</p>
               <nav className="mobile-nav" aria-label="手机导航">
                 <button
                   onClick={() => {
@@ -315,20 +312,9 @@ export default function App() {
         <main id="main" tabIndex={-1}>
           <section className="hero" aria-label="持有成本汇总">
             <div className="hero-intro">
-              <p className="eyebrow">
-                <span className="live-dot" /> PERSONAL DEVICE LEDGER
-              </p>
               <h1>
-                {view === "score" ? "设备总谱" : "时间里的成本"}
-                <span>
-                  {view === "score" ? "Device Score" : "Cost Insights"}
-                </span>
+                {view === "score" ? "设备总谱" : "成本统计"}
               </h1>
-              <p className="hero-description">
-                {view === "score"
-                  ? "把每一段陪伴，放在同一条时间里。"
-                  : "看见投入的变化，也看见时间的价值。"}
-              </p>
               <div className="inventory-count">
                 <span>
                   <i />
@@ -352,9 +338,6 @@ export default function App() {
                 })}
                 <small>/天</small>
               </div>
-              <p className="caption">
-                {summary.active.length} 件在用设备 · 含已发生追加
-              </p>
             </div>
             <div className="hero-investment">
               <p className="metric-label">当前持有投入</p>
@@ -374,11 +357,6 @@ export default function App() {
                   ]}
                   onChange={setMode}
                 />
-                <span className="toolbar-hint">
-                  {mode === "timeline"
-                    ? "十指之间，是时间的刻度。"
-                    : "每一天的成本，在此一目了然。"}
-                </span>
                 <div className="score-tools">
                   {mode === "ranking" ? (
                     <Segmented
@@ -503,7 +481,6 @@ export default function App() {
           )}
         </main>
         <footer className="page-footer">
-          <span>物有所值，时间作答。</span>
           <button
             className="text-button"
             onClick={() => setView(view === "score" ? "stats" : "score")}
@@ -511,9 +488,6 @@ export default function App() {
             {view === "score" ? "查看成本统计" : "回到设备总谱"}
             <ArrowUpRight size={14} />
           </button>
-          <span className="footer-meta">
-            kept <i /> 个人设备成本账本
-          </span>
         </footer>
       </div>
       {message && (

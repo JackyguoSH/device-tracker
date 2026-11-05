@@ -2617,3 +2617,30 @@ summary:hover {
   .track-cell { margin-left: 4px; margin-right: 4px; }
   .cost-help > button { width: 32px; height: 32px; }
 }
+
+:root[data-theme="light"] {
+  --bg: #fafafa;
+  --text: #262626;
+  --muted: #626262;
+  --quiet: #717171;
+  --line: rgba(0,0,0,.1);
+  --panel: #fff;
+  --row-solid: #fafafa;
+  --input: #fff;
+  --glass: #fff;
+  --glass-border: rgba(0,0,0,.09);
+  --hover: rgba(0,0,0,.035);
+  --detail: #f5f5f5;
+}
+body::before { content: none; }
+:root[data-theme="light"] .glass { box-shadow: none; backdrop-filter: none; }
+.hero-intro h1 { margin-top: 0; }
+.page-footer { justify-content: flex-end; }
+@media(max-width:900px) {
+  .hero-intro { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
+  .inventory-count { max-width: none; }
+}
+@media(max-width:640px) {
+  .hero-intro { display: block; }
+  .inventory-count { justify-content: flex-start; }
+}

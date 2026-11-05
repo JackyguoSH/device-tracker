@@ -100,7 +100,6 @@ export function ScoreDetail({
     <section className="device-detail glass" aria-label={`${d.name} 成本详情`}>
       <div className="detail-heading">
         <div>
-          <p className="eyebrow">THE COST OF COMPANIONSHIP</p>
           <h2>
             每一天的成本
             <span>
@@ -320,7 +319,7 @@ export function ScoreDetail({
                 </p>
               </>
             ) : (
-              <p>为这段陪伴，设一个自己的成本刻度。</p>
+              null
             )}
             <button className="text-button" onClick={onEdit}>
               {d.targetDaily ? "修改目标" : "设置日均目标"}
@@ -331,7 +330,7 @@ export function ScoreDetail({
       </div>
       <details className="archive-details">
         <summary>
-          完整档案与原始明细 <span>分类、渠道、保修、备注与归档</span>
+          完整档案
         </summary>
         <dl>
           {[
