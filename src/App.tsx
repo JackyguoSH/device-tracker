@@ -175,13 +175,6 @@ export default function App() {
     setCategory("全部");
     setStatus("全部");
     setView("score");
-    setTimeout(
-      () =>
-        document
-          .getElementById(`row-${d.id}`)
-          ?.scrollIntoView({ block: "nearest", behavior: "smooth" }),
-      100,
-    );
     return true;
   }
   const filterCount =

@@ -99,14 +99,9 @@ export function ScoreDetail({
   return (
     <section className="device-detail glass" aria-label={`${d.name} 成本详情`}>
       <div className="detail-heading">
-        <div>
-          <h2>
-            每一天的成本
-            <span>
-              {dateLabel(d.purchaseDate)} — {dateLabel(iso(end))}
-            </span>
-          </h2>
-        </div>
+        <p className="detail-date">
+          {dateLabel(d.purchaseDate)} — {active ? "至今" : dateLabel(iso(end))}
+        </p>
         <div className="detail-actions">
           <button onClick={onEdit}>
             <Pencil size={14} />

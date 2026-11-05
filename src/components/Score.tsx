@@ -7,7 +7,7 @@ import {
   type CSSProperties,
 } from "react";
 import {
-  ChevronDown,
+  ArrowUpRight,
   Headphones,
   Laptop,
   Monitor,
@@ -25,6 +25,7 @@ import {
   type History,
 } from "../lib/model";
 import { scoreEvents, type ScoreEvent } from "../lib/score";
+import { Modal } from "./Shared";
 import { ScoreDetail } from "./ScoreDetail";
 
 type Props = {
@@ -249,11 +250,7 @@ function ScoreRow({
   onToggle: () => void;
 }) {
   const { devices, today, mode, period, onExpand, onEdit, onDelete } = props;
-  const [visited, setVisited] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
-  useEffect(() => {
-    if (open) setVisited(true);
-  }, [open]);
   const events = useMemo(
     () => scoreEvents(d, devices, today, h),
     [d, devices, today, h],
@@ -296,8 +293,9 @@ function ScoreRow({
         <button
           className="device-label"
           aria-expanded={open}
-          aria-controls={`detail-${d.id}`}
-          onClick={onToggle}
+          aria-haspopup="dialog"
+          aria-controls={open ? `detail-${d.id}` : undefined}
+          onClick={() => { setSelectedEvent(null); onToggle(); }}
         >
           <span className="row-index">
             {String(index + 1).padStart(2, "0")}
@@ -312,7 +310,7 @@ function ScoreRow({
               {archived && <span className="archive-badge">已归档</span>}
             </span>
           </span>
-          <ChevronDown className="row-chevron" size={13} />
+          <ArrowUpRight className="row-chevron" size={13} />
         </button>
         <div className="track-cell">
           <div className="track-guides" aria-hidden="true">
@@ -327,10 +325,11 @@ function ScoreRow({
           </div>
           <button
             className="track-hit"
-            onClick={onToggle}
+            onClick={() => { setSelectedEvent(null); onToggle(); }}
             aria-expanded={open}
-            aria-controls={`detail-${d.id}`}
-            aria-label={`${d.name}，${dateLabel(d.purchaseDate)} 至 ${h ? dateLabel(new Date(h.usageEnd).toISOString().slice(0, 10)) : "日期待补充"}，展开成本曲线`}
+            aria-haspopup="dialog"
+          aria-controls={open ? `detail-${d.id}` : undefined}
+            aria-label={`${d.name}，${dateLabel(d.purchaseDate)} 至 ${h ? dateLabel(new Date(h.usageEnd).toISOString().slice(0, 10)) : "日期待补充"}，查看成本曲线`}
           />
           {h && (
             <div
@@ -394,8 +393,8 @@ function ScoreRow({
         </div>
         <button
           className="device-cost"
-          onClick={onToggle}
-          aria-label={`${d.name} ${value}，展开详情`}
+          onClick={() => { setSelectedEvent(null); onToggle(); }}
+          aria-label={`${d.name} ${value}，查看详情`}
         >
           <span>{value}</span>
           <small>
@@ -409,28 +408,21 @@ function ScoreRow({
           </small>
         </button>
       </div>
-      <div
-        className={`detail-accordion ${open ? "expanded" : ""}`}
-        id={`detail-${d.id}`}
-        aria-hidden={!open}
-        inert={!open}
-      >
-        <div className="detail-clip">
-          {(open || visited) && (
-            <ScoreDetail
-              device={d}
-              devices={devices}
-              history={h}
-              today={today}
-              events={events}
-              selectedEvent={selectedEvent}
-              onSelectEvent={setSelectedEvent}
-              onEdit={() => onEdit(d)}
-              onDelete={() => onDelete(d)}
-            />
-          )}
-        </div>
-      </div>
+      {open && (
+        <Modal title={d.name} id={`detail-${d.id}`} className="device-dialog" onClose={() => onExpand(null)}>
+          <ScoreDetail
+            device={d}
+            devices={devices}
+            history={h}
+            today={today}
+            events={events}
+            selectedEvent={selectedEvent}
+            onSelectEvent={setSelectedEvent}
+            onEdit={() => onEdit(d)}
+            onDelete={() => onDelete(d)}
+          />
+        </Modal>
+      )}
     </article>
   );
 }

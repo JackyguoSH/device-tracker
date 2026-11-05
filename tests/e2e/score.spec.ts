@@ -34,7 +34,7 @@ test("exact snapshot, zero-cost devices and real archive endpoints", async ({
   expect(errors).toEqual([]);
 });
 
-test("event expands in place, reveals its date and detail, then collapses", async ({
+test("event opens a modal at its date without shifting the list", async ({
   page,
 }) => {
   await page.goto("/");
@@ -42,7 +42,7 @@ test("event expands in place, reveals its date and detail, then collapses", asyn
   const following = page.locator(row("airpods-pro"));
   const before = (await following.boundingBox())!.y;
   await target.getByRole("button", { name: /2023.04.06.*追加投入/ }).click();
-  await expect(target.locator(".detail-accordion")).toHaveClass(/expanded/);
+  await expect(target.locator("dialog[open]")).toBeVisible();
   await expect(
     target.getByRole("region", { name: "选中事件明细" }),
   ).toContainText("Apple Pencil 笔尖 +¥179");
@@ -51,18 +51,13 @@ test("event expands in place, reveals its date and detail, then collapses", asyn
   await expect(
     target.getByRole("button", { name: "完整持有期", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
-  expect((await following.boundingBox())!.y).toBeGreaterThan(before + 300);
-  await target.locator(".device-label").click();
+  expect((await following.boundingBox())!.y).toBe(before);
+  await target.getByRole("button", { name: "关闭", exact: true }).click();
   await expect(target.locator(".device-label")).toHaveAttribute(
     "aria-expanded",
     "false",
   );
-  await expect
-    .poll(
-      async () =>
-        (await target.locator(".detail-accordion").boundingBox())!.height,
-    )
-    .toBeLessThan(1);
+  await expect(target.locator("dialog")).toHaveCount(0);
   await page.locator(`${row("iphone-14-pro")} .device-label`).click();
   await expect(page.locator(`${row("iphone-14-pro")} .notice`)).toContainText(
     "2022–2025 续保日期按周年估算",
@@ -244,6 +239,8 @@ test("light theme persists and reduced motion disables track animations", async 
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
   await page.getByRole("button", { name: "打开菜单" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await page.getByRole("button", { name: "切换深色主题" }).click();
   await page.getByRole("button", { name: "切换明亮主题" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await page.keyboard.press("Escape");

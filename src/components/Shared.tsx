@@ -21,33 +21,46 @@ export function Photo({
     </span>
   );
 }
+let modalLocks = 0;
+let originalBodyOverflow = "";
+
 export function Modal({
   title,
   children,
   onClose,
   wide = false,
+  className = "",
+  id,
 }: {
   title: string;
   children: ReactNode;
   onClose: () => void;
   wide?: boolean;
+  className?: string;
+  id?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   useEffect(() => {
     const dialog = ref.current!;
-    const old = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (modalLocks++ === 0) {
+      originalBodyOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+    }
     dialog.showModal();
     return () => {
       dialog.close();
-      document.body.style.overflow = old;
+      if (--modalLocks === 0) document.body.style.overflow = originalBodyOverflow;
+      if (opener?.isConnected) opener.focus({ preventScroll: true });
     };
   }, []);
   return (
     <dialog
       ref={ref}
-      className={wide ? "dialog wide" : "dialog"}
-      onCancel={onClose}
+      id={id}
+      className={`dialog ${wide ? "wide" : ""} ${className}`}
+      onCancel={(e) => { e.preventDefault(); onClose(); }}
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           const rect = e.currentTarget.getBoundingClientRect();
@@ -60,15 +73,15 @@ export function Modal({
             onClose();
         }
       }}
-      aria-labelledby="dialog-title"
+      aria-labelledby={titleId}
     >
       <div className="dialog-heading">
-        <h2 id="dialog-title">{title}</h2>
-        <button className="icon-button" onClick={onClose} aria-label="关闭">
+        <h2 id={titleId}>{title}</h2>
+        <button type="button" className="icon-button" onClick={onClose} aria-label="关闭" autoFocus>
           <X size={20} />
         </button>
       </div>
-      {children}
+      {className === "device-dialog" ? <div className="dialog-content">{children}</div> : children}
     </dialog>
   );
 }

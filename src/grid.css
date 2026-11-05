@@ -153,3 +153,53 @@
   .category-table td:last-child { width: auto; }
   .form-grid { grid-template-columns: 1fr; }
 }
+
+/* Device details live in the top layer, with their own reading width. */
+.dialog.device-dialog {
+  width: min(1120px, calc(100vw - 64px));
+  max-width: none;
+  max-height: calc(100dvh - 64px);
+  padding: 0;
+  margin: auto;
+  border-radius: 12px;
+  overscroll-behavior: contain;
+}
+.device-dialog > .dialog-heading {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  margin: 0;
+  padding: 16px 24px;
+  min-height: 72px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  gap: 16px;
+}
+.device-dialog > .dialog-heading h2 { font-size: 24px; line-height: 32px; overflow-wrap: anywhere; }
+.device-dialog > .dialog-heading .icon-button { width: 40px; height: 40px; flex-shrink: 0; }
+.device-dialog .dialog-content { padding: 24px; }
+.device-dialog .device-detail { margin: 0; padding: 0; background: none; border: 0; border-radius: 0; }
+.device-dialog .detail-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.detail-date { font-size: 12px; color: var(--muted); line-height: 24px; }
+.device-dialog .detail-actions { margin-left: auto; }
+.device-dialog .detail-body { grid-template-columns: repeat(12,minmax(0,1fr)); }
+.device-dialog .detail-chart { grid-column: span 8; }
+.device-dialog .detail-events { grid-column: span 4; border-top: 0; border-left: 1px solid var(--line); padding: 0 0 0 24px; }
+.device-dialog .detail-facts { grid-template-columns: repeat(6,minmax(0,1fr)); }
+.device-dialog .detail-facts > div:last-child { grid-column: span 2; }
+.is-open .row-chevron { transform: none; }
+@media(max-width:900px) {
+  .device-dialog .detail-body { grid-template-columns: minmax(0,1fr); }
+  .device-dialog .detail-chart, .device-dialog .detail-events { grid-column: 1; }
+  .device-dialog .detail-events { padding: 24px 0 0; border-left: 0; border-top: 1px solid var(--line); }
+  .device-dialog .detail-facts { grid-template-columns: repeat(3,minmax(0,1fr)); }
+}
+@media(max-width:767px) {
+  .dialog.device-dialog { width: 100%; height: 100dvh; max-height: 100dvh; border-radius: 0; border: 0; }
+  .device-dialog > .dialog-heading { min-height: 72px; padding: max(12px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 12px max(16px,env(safe-area-inset-left)); }
+  .device-dialog > .dialog-heading h2 { font-size: 22px; }
+  .device-dialog > .dialog-heading .icon-button { width: 44px; height: 44px; }
+  .device-dialog .dialog-content { padding: 16px max(16px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left)); }
+  .device-dialog .detail-facts { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .device-dialog .detail-facts > div:last-child { grid-column: 1 / -1; }
+}
