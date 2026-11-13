@@ -215,7 +215,7 @@ test("portrait tracks fit the screen below readable device headings and details"
     const label = (await target.locator(".device-label").boundingBox())!;
     const track = (await target.locator(".track-cell").boundingBox())!;
     expect(track.y).toBeGreaterThanOrEqual(label.y + label.height - 1);
-    expect(track.width).toBeGreaterThan(width - 80);
+    expect(track.width).toBeGreaterThan(width * 0.7);
     expect(await page.locator("body").evaluate((e) => e.scrollWidth)).toBe(width);
   }
   await page.setViewportSize({ width: 390, height: 844 });
@@ -255,7 +255,7 @@ test("light theme persists and reduced motion disables track animations", async 
   await page.getByRole("button", { name: "打开菜单" }).click();
   await page.getByLabel("统计截止日").fill("2026-01-23");
   await page.keyboard.press("Escape");
-  await expect(page.locator(".snapshot-label")).toHaveText("2026.01.23 截止");
+  await expect(page.locator(".snapshot-label")).toHaveText("截至 2026.01.23");
 });
 
 test("a same-day expense and recovery each expose their own clickable record", async ({

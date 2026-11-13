@@ -14,7 +14,13 @@ export function Photo({
   return (
     <span className={`photo ${large ? "photo-large" : ""}`}>
       {src && !failed ? (
-        <img src={src} alt={device.name} onError={() => setFailed(true)} />
+        <img
+          src={src}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          onError={() => setFailed(true)}
+        />
       ) : (
         <Box size={large ? 64 : 24} aria-label="暂无照片" />
       )}
@@ -43,7 +49,10 @@ export function Modal({
   const titleId = useId();
   useEffect(() => {
     const dialog = ref.current!;
-    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const opener =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
     if (modalLocks++ === 0) {
       originalBodyOverflow = document.body.style.overflow;
       document.body.style.overflow = "hidden";
@@ -51,7 +60,8 @@ export function Modal({
     dialog.showModal();
     return () => {
       dialog.close();
-      if (--modalLocks === 0) document.body.style.overflow = originalBodyOverflow;
+      if (--modalLocks === 0)
+        document.body.style.overflow = originalBodyOverflow;
       if (opener?.isConnected) opener.focus({ preventScroll: true });
     };
   }, []);
@@ -60,7 +70,10 @@ export function Modal({
       ref={ref}
       id={id}
       className={`dialog ${wide ? "wide" : ""} ${className}`}
-      onCancel={(e) => { e.preventDefault(); onClose(); }}
+      onCancel={(e) => {
+        e.preventDefault();
+        onClose();
+      }}
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           const rect = e.currentTarget.getBoundingClientRect();
@@ -77,11 +90,21 @@ export function Modal({
     >
       <div className="dialog-heading">
         <h2 id={titleId}>{title}</h2>
-        <button type="button" className="icon-button" onClick={onClose} aria-label="关闭" autoFocus>
+        <button
+          type="button"
+          className="icon-button"
+          onClick={onClose}
+          aria-label="关闭"
+          autoFocus
+        >
           <X size={20} />
         </button>
       </div>
-      {className === "device-dialog" ? <div className="dialog-content">{children}</div> : children}
+      {className === "device-dialog" ? (
+        <div className="dialog-content">{children}</div>
+      ) : (
+        children
+      )}
     </dialog>
   );
 }
@@ -115,13 +138,56 @@ export function Segmented<T extends string>({
 export function CostHelp() {
   const id = useId();
   const [open, setOpen] = useState(false);
-  return <span className={`cost-help ${open ? "is-open" : ""}`}>
-    <button type="button" aria-label="日均成本计算说明" aria-describedby={id} aria-expanded={open}
-      onClick={() => setOpen(!open)} onBlur={() => setOpen(false)} onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}>
-      <Info size={14} />
-    </button>
-    <span id={id} className="cost-help-tooltip" role="tooltip">
-      日均 =（购入 + 已发生追加 − 已回收金额）÷ 使用天数。购入当天至少计 1 天；停用后回收不增加天数。
+  const [position, setPosition] = useState({ left: 16, top: 16 });
+
+  function positionTooltip(button: HTMLElement) {
+    const bounds = button.getBoundingClientRect();
+    const width = Math.min(272, window.innerWidth - 32);
+    const left = Math.max(
+      16,
+      Math.min(bounds.left - width * 0.3, window.innerWidth - width - 16),
+    );
+    const top =
+      window.innerHeight - bounds.bottom > 160
+        ? bounds.bottom + 8
+        : Math.max(16, bounds.top - 160);
+    setPosition({ left, top });
+  }
+
+  return (
+    <span className={`cost-help ${open ? "is-open" : ""}`}>
+      <button
+        type="button"
+        aria-label="日均成本计算说明"
+        aria-describedby={id}
+        aria-expanded={open}
+        onPointerEnter={(event) => positionTooltip(event.currentTarget)}
+        onFocus={(event) => positionTooltip(event.currentTarget)}
+        onClick={(event) => {
+          positionTooltip(event.currentTarget);
+          setOpen(!open);
+        }}
+        onBlur={() => setOpen(false)}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.stopPropagation();
+            event.preventDefault();
+            setOpen(false);
+            event.currentTarget.blur();
+          }
+        }}
+      >
+        <Info size={14} />
+      </button>
+      <span
+        id={id}
+        className="cost-help-tooltip"
+        role="tooltip"
+        style={position}
+      >
+        日均 =（购入 + 已发生追加 − 已回收金额）÷ 使用天数。购入当天至少计 1
+        天；停用后回收不增加天数。
+      </span>
     </span>
-  </span>;
+  );
 }

@@ -1,19 +1,11 @@
 import {
-  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
 } from "react";
 import {
   ArrowUpRight,
-  Headphones,
-  Laptop,
-  Monitor,
-  Smartphone,
-  Tablet,
-  Watch,
   Box,
 } from "lucide-react";
 import {
@@ -25,7 +17,7 @@ import {
   type History,
 } from "../lib/model";
 import { scoreEvents, type ScoreEvent } from "../lib/score";
-import { Modal } from "./Shared";
+import { Modal, Photo } from "./Shared";
 import { ScoreDetail } from "./ScoreDetail";
 
 type Props = {
@@ -58,13 +50,7 @@ export function Score(props: Props) {
     onExpand,
   } = props;
   const viewport = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(1000);
   const positions = useRef(new Map<string, number>());
-  useEffect(() => {
-    const observer = new ResizeObserver(([e]) => setWidth(e.contentRect.width));
-    if (viewport.current) observer.observe(viewport.current);
-    return () => observer.disconnect();
-  }, []);
   const visible = useMemo(
     () =>
       devices
@@ -152,7 +138,6 @@ export function Score(props: Props) {
       <div
         className={`score-scroll ${mode}`}
         ref={viewport}
-        style={{ "--score-width": `${width}px` } as CSSProperties}
         tabIndex={0}
         role="region"
         aria-label={
@@ -197,12 +182,11 @@ export function Score(props: Props) {
               <span>↓</span>
             </div>
           </div>
-          {visible.map((d, index) => (
+          {visible.map((d) => (
             <ScoreRow
               key={d.id}
               {...props}
               device={d}
-              index={index}
               history={histories.get(d.id) ?? null}
               guides={yearGuides}
               position={position}
@@ -231,7 +215,6 @@ export function Score(props: Props) {
 }
 function ScoreRow({
   device: d,
-  index,
   history: h,
   guides,
   position,
@@ -241,7 +224,6 @@ function ScoreRow({
   ...props
 }: Props & {
   device: Device;
-  index: number;
   history: History | null;
   guides: { year: number; left: number }[];
   position: (date: number) => number;
@@ -257,14 +239,6 @@ function ScoreRow({
   );
   const markers = events.filter((e) => e.kind !== "purchase");
   const archived = d.status === "归档";
-  const Icon = {
-    手机: Smartphone,
-    电脑: Laptop,
-    平板: Tablet,
-    穿戴: d.category === "穿戴" && /watch/i.test(d.name) ? Watch : Headphones,
-    影音: Monitor,
-    其他: Box,
-  }[d.category];
   const left =
     mode === "timeline" ? position(h?.start ?? stamp(d.purchaseDate)) : 0;
   const right =
@@ -287,7 +261,6 @@ function ScoreRow({
       className={`score-row ${archived ? "archived" : ""} ${open ? "is-open" : ""} ${h?.missingPrice ? "missing-price" : ""}`}
       id={`row-${d.id}`}
       data-device={d.id}
-      style={{ "--row-delay": `${index * 30}ms` } as CSSProperties}
     >
       <div className="row-main">
         <button
@@ -297,15 +270,12 @@ function ScoreRow({
           aria-controls={open ? `detail-${d.id}` : undefined}
           onClick={() => { setSelectedEvent(null); onToggle(); }}
         >
-          <span className="row-index">
-            {String(index + 1).padStart(2, "0")}
-          </span>
-          <Icon className="device-icon" size={19} strokeWidth={1.35} />
+          <Photo device={d} />
           <span className="device-text">
             <span className="device-name">{d.name}</span>
             <span className="device-meta">
               {d.category}
-              <span className="meta-dot">·</span>
+              <span className="meta-divider" aria-hidden="true" />
               {days ? `${days.toLocaleString()} 天` : d.purchaseDate > today ? "计划购入" : "日期待补充"}
               {archived && <span className="archive-badge">已归档</span>}
             </span>

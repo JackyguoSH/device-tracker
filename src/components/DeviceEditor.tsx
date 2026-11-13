@@ -82,7 +82,6 @@ export function DeviceEditor({
       wide
     >
       <form onSubmit={submit}>
-        <p className="muted">记录真实的投入，其他信息可以慢慢补齐。</p>
         <div className="form-grid">
           {field("name", "设备名称 *", "text", true)}
           <label className="field">

@@ -22,7 +22,7 @@ import {
 } from "../lib/model";
 import type { ScoreEvent } from "../lib/score";
 import { LineChart } from "./LineChart";
-import { CostHelp, Segmented } from "./Shared";
+import { CostHelp, Photo, Segmented } from "./Shared";
 
 export function ScoreDetail({
   device: d,
@@ -99,9 +99,13 @@ export function ScoreDetail({
   return (
     <section className="device-detail glass" aria-label={`${d.name} 成本详情`}>
       <div className="detail-heading">
-        <p className="detail-date">
-          {dateLabel(d.purchaseDate)} — {active ? "至今" : dateLabel(iso(end))}
-        </p>
+        <div className="detail-identity">
+          <Photo device={d} large />
+          <div>
+            <p className="detail-status">{active ? "正在使用" : d.status === "归档" ? "已归档" : "已停用"}</p>
+            <p className="detail-date">{dateLabel(d.purchaseDate)} — {active ? "至今" : dateLabel(iso(end))}</p>
+          </div>
+        </div>
         <div className="detail-actions">
           <button onClick={onEdit}>
             <Pencil size={14} />
@@ -248,7 +252,7 @@ export function ScoreDetail({
         </div>
         <aside className="detail-events" aria-label={`${d.name} 支出记录`}>
           <div className="section-top">
-            <h3>支出刻度</h3>
+            <h3>支出记录</h3>
             <span className="caption">{events.length} 条记录</span>
           </div>
           <div className="event-buttons">

@@ -86,7 +86,7 @@ export function productImage(device: Device) {
   const name = device.name.toLowerCase();
   const files: [string, string][] = [
     ["apple tv", "apple-tv-4k-2022-alpha-v3.png"],
-    ["airpods pro 2", "airpods-pro-2-usbc-transparent.png"],
+    ["airpods pro 2", "airpods-pro-2-usbc-alpha-v3.png"],
     ["airpods pro", "airpods-pro-1-alpha-v3.png"],
     ["homepod mini", "homepod-mini-white-alpha-v3.png"],
     ["watch", "apple-watch-s7-alpha-v3.png"],

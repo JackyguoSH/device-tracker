@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
-  ArrowUpRight,
   Check,
   Menu,
   Moon,
@@ -33,7 +32,8 @@ import { Portfolio } from "./components/Portfolio";
 const STORAGE = "wuji-score-devices-v1";
 function loadDevices() {
   try {
-    const saved = localStorage.getItem(STORAGE) ?? localStorage.getItem("wuji-devices-v1");
+    const saved =
+      localStorage.getItem(STORAGE) ?? localStorage.getItem("wuji-devices-v1");
     if (!saved) return { devices: initialDevices as Device[], error: "" };
     const data = JSON.parse(saved);
     if (
@@ -57,7 +57,9 @@ export default function App() {
   const [undo, setUndo] = useState<Device[] | null>(null);
   const [theme, setTheme] = useState(() => {
     try {
-      return localStorage.getItem("kept-theme-v1") === "dark" ? "dark" : "light";
+      return localStorage.getItem("kept-theme-v1") === "dark"
+        ? "dark"
+        : "light";
     } catch {
       return "light";
     }
@@ -202,7 +204,7 @@ export default function App() {
               aria-current={view === "score" ? "page" : undefined}
               onClick={() => setView("score")}
             >
-              设备总谱
+              设备
             </button>
             <button
               aria-current={view === "stats" ? "page" : undefined}
@@ -241,7 +243,7 @@ export default function App() {
                     setMenu(false);
                   }}
                 >
-                  设备总谱 {view === "score" && <Check size={14} />}
+                  设备 {view === "score" && <Check size={14} />}
                 </button>
                 <button
                   onClick={() => {
@@ -305,24 +307,47 @@ export default function App() {
         <main id="main" tabIndex={-1}>
           <section className="hero" aria-label="持有成本汇总">
             <div className="hero-intro">
-              <h1>
-                {view === "score" ? "设备总谱" : "成本统计"}
-              </h1>
-              <div className="inventory-count">
-                <span>
-                  <i />
-                  在用{" "}
-                  <b>{summary.active.length.toString().padStart(2, "0")}</b>
-                </span>
-                <span>
-                  <i />
-                  归档 <b>{summary.archived.toString().padStart(2, "0")}</b>
-                </span>
-                <span className="snapshot-label">{dateLabel(today)} 截止</span>
-              </div>
+              <h1>{view === "score" ? "我的设备" : "成本统计"}</h1>
+              {view === "score" ? (
+                <div
+                  className="inventory-count"
+                  role="group"
+                  aria-label="按设备状态筛选"
+                >
+                  {[
+                    { value: "全部", label: "全部", count: devices.length },
+                    {
+                      value: "持有",
+                      label: "在用",
+                      count: devices.filter((d) => d.status === "持有").length,
+                    },
+                    { value: "归档", label: "归档", count: summary.archived },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      aria-pressed={status === option.value}
+                      onClick={() => {
+                        setStatus(option.value);
+                        setView("score");
+                      }}
+                    >
+                      {option.label}
+                      <span>{option.count}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="stats-scope">
+                  {summary.active.length} 件在用设备
+                </p>
+              )}
+              <span className="snapshot-label">截至 {dateLabel(today)}</span>
             </div>
             <div className="hero-daily">
-              <p className="metric-label">当前日均合计 <CostHelp /></p>
+              <p className="metric-label">
+                日均合计 <CostHelp />
+              </p>
               <div className="main-number">
                 <span>¥</span>
                 {summary.daily.toLocaleString("zh-CN", {
@@ -333,9 +358,8 @@ export default function App() {
               </div>
             </div>
             <div className="hero-investment">
-              <p className="metric-label">当前持有投入</p>
+              <p className="metric-label">持有投入</p>
               <strong>{money(summary.total)}</strong>
-
             </div>
           </section>
           {view === "score" ? (
@@ -466,22 +490,12 @@ export default function App() {
                     归档回收
                   </span>
                 </div>
-
               </div>
             </section>
           ) : (
             <Portfolio devices={devices} histories={histories} today={today} />
           )}
         </main>
-        <footer className="page-footer">
-          <button
-            className="text-button"
-            onClick={() => setView(view === "score" ? "stats" : "score")}
-          >
-            {view === "score" ? "查看成本统计" : "回到设备总谱"}
-            <ArrowUpRight size={14} />
-          </button>
-        </footer>
       </div>
       {message && (
         <div className="toast" role="status">

@@ -69,7 +69,7 @@ export function Portfolio({
           <small>日均 × 365，非年度实际支出</small>
         </div>
         <div>
-          <span>最久的陪伴</span>
+          <span>持有最久</span>
           <strong>
             {summary.longest.toLocaleString()}
             <small> 天</small>
@@ -92,7 +92,7 @@ export function Portfolio({
       <div className="portfolio-trend">
         <div className="section-top">
           <div>
-            <h2>当前组合 · 日均成本趋势</h2>
+            <h2>组合日均成本</h2>
           </div>
           <Segmented
             label="统计时间范围"
@@ -131,7 +131,7 @@ export function Portfolio({
       </div>
       <div className="category-summary">
         <div className="section-top">
-          <h2>投入的去向</h2>
+          <h2>分类投入</h2>
         </div>
         <div className="category-table">
           <table>
