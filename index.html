@@ -257,9 +257,37 @@ select.field-control {appearance:auto;padding-right:10px}
 .search:focus-within {outline:2px solid var(--accent);outline-offset:2px}
 .search input::placeholder {color:var(--muted)}
 .collection-toolbar {display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
-.collection-controls {display:grid;grid-template-columns:minmax(160px,1.55fr) repeat(4,minmax(0,1fr))}
-.collection-controls>.field-control {width:100%;font-size:14px}
+.collection-controls {display:grid;grid-template-columns:minmax(0,1fr) auto;position:relative}
 .collection-controls .search input {width:100%}
+.filter-toggle {
+  display:flex;align-items:center;justify-content:space-between;gap:7px;list-style:none;cursor:pointer;
+  padding-inline:12px;font-size:14px;font-weight:610;white-space:nowrap;
+}
+.filter-toggle::-webkit-details-marker {display:none}
+.filter-toggle .icon {width:15px;height:15px;color:var(--muted)}
+.collection-filters[open] .filter-toggle .icon {transform:rotate(180deg)}
+.filter-count {
+  display:grid;place-items:center;min-width:19px;height:19px;border-radius:10px;
+  color:var(--accent);background:var(--well-tint);font-size:11px;font-variant-numeric:tabular-nums;
+}
+.filter-menu {
+  position:absolute;z-index:3;inset-block-start:calc(100% + 8px);inset-inline-end:0;
+  width:min(426px,100%);max-height:min(70svh,530px);overflow-y:auto;
+  padding:16px;background:var(--glass-dense);
+}
+.filter-menu fieldset {min-width:0;margin:0 0 14px;padding:0;border:0}
+.filter-menu legend {margin-bottom:6px;padding:0;color:var(--muted);font-size:12px;font-weight:610}
+.filter-options {display:flex;flex-wrap:wrap;gap:6px}
+.filter-options label {position:relative;min-width:0;cursor:pointer}
+.filter-options input {position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.filter-options span {
+  display:flex;align-items:center;min-height:34px;padding:4px 10px;border-radius:9px;
+  border:1px solid var(--pane-edge);background:var(--well-tint);font-size:13px;
+}
+.filter-options input:checked+span {color:var(--accent);border-color:var(--accent);background:var(--glass-well)}
+.filter-options input:focus-visible+span {outline:2px solid var(--accent);outline-offset:2px}
+.filter-actions {display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:8px;border-top:1px solid var(--line)}
+.filter-actions button {min-height:38px}
 .collection-views {display:flex;align-items:center;justify-content:space-between;gap:8px}
 .result-text {font-size:13px;color:var(--muted);margin:0 4px}
 .brand-groups {display:grid;gap:14px}
@@ -397,8 +425,7 @@ textarea.field-control {min-height:84px;resize:vertical}
   .device-date {font-size:12px}
   .device-money {font-size:16px}
   .segment button {min-height:44px}
-  .collection-controls {grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
-  .collection-controls .search {grid-column:1/-1}
+  .collection-controls {gap:7px}
   .collection-views .segment button {padding-inline:8px}
   .search input {width:100%;font-size:16px}
   .timeline {padding:8px 12px}
@@ -481,8 +508,7 @@ button.series-item {pointer-events:auto}
 .archived-series:not([data-highlighted]) .series-name {color:var(--muted)}
 .series-actions {display:flex;justify-content:flex-end;gap:8px;align-items:center;margin-top:4px}
 .series-actions .quiet {min-height:36px;font-size:13px}
-.compact-readout {display:none}
-.comparison-stage[data-following] .series-list {visibility:hidden}
+.compact-date {display:none}
 .compact-crossings {position:absolute;inset:0;pointer-events:none}
 .crossing-row {
   position:absolute;left:var(--tag-x);top:var(--tag-y);transform:translateY(-50%);
@@ -516,13 +542,14 @@ button.series-item {pointer-events:auto}
   .comparison-stage .series-list {display:none}
   .comparison-canvas {height:max(clamp(224px,35svh,300px),min(370px,calc(var(--curves)*17px + 56px)))}
   .chart-context output {display:none}
+  .chart-context[data-purchase] output {display:block}
   .chart-controls {width:100%}
   .chart-controls .segment {width:100%;min-width:0}
   .chart-controls .segment button {flex:1;min-width:0;padding-inline:3px;font-size:11px}
-  .compact-readout:not([hidden]) {
-    display:block;margin-top:9px;color:var(--muted);font-size:12px;
-    overflow-wrap:anywhere;font-variant-numeric:tabular-nums;
-  }
+  .comparison-figure .plot-footer {display:grid;grid-template-columns:auto minmax(0,1fr) auto;white-space:nowrap}
+  .axis-center {text-align:center}
+  .axis-unit {display:none}
+  .compact-date {display:inline;color:var(--ink)}
   .crossing-row {font-size:11px;pointer-events:auto}
 }
 @media (max-width:760px) {
@@ -852,7 +879,7 @@ const columns = [
 const amounts = ['purchasePrice','additional','archivedPrice'];
 const dateFields = ['purchaseDate','warrantyEnd','archivedDate','usageEnd'];
 
-const brandLabels={Apple:'Apple（苹果）',DJI:'DJI（大疆）'};
+const brandAliases={Apple:'苹果',DJI:'大疆'};
 function normalizeBrand(value='',name='') {
   const brand=value.trim();
   if (/^(?:apple|苹果|apple[（(]苹果[）)])$/i.test(brand)) return 'Apple';
@@ -863,7 +890,7 @@ function normalizeBrand(value='',name='') {
   return '';
 }
 const brandKey=device=>(device.brand??'').toLocaleLowerCase('en-US');
-const brandLabel=brand=>Object.hasOwn(brandLabels,brand)?brandLabels[brand]:brand||'未填写品牌';
+const brandLabel=brand=>brand||'未填写品牌';
 const withBrand=device=>({...device,brand:normalizeBrand(device.brand,device.name)});
 
 // Upgrade the former array-based local archive once. The version is saved with
@@ -1633,7 +1660,6 @@ function overviewChart() {
       (archived?'<span class="series-archived">归档</span>':'')+'</span></'+tag+'>';
   }).join('');
 
-  const compactReadout=count?'<output class="compact-readout" aria-live="polite" hidden></output>':'';
   const crossings=count && !portfolio?'<div class="compact-crossings" role="group" aria-label="日期对应的设备读数" hidden>'+
     series.filter(item=>item.points.length).map(({device,archived})=>
       '<button class="crossing-row" type="button" aria-pressed="false" data-crossing="'+esc(device.id)+'"'+
@@ -1651,9 +1677,10 @@ function overviewChart() {
     (count?'<figure class="comparison-figure"><div class="comparison-stage'+(portfolio?' portfolio-stage':'')+'" style="--curves:'+count+'">'+
       '<canvas class="comparison-canvas" tabindex="0" aria-label="日均成本走势，方向键可逐日查看，Shift 加方向键可按周查看" aria-describedby="comparison-caption"></canvas>'+
       '<div class="series-list"'+(portfolio?'':' role="group" aria-label="设备曲线和读数"')+'>'+legend+'</div>'+crossings+purchaseMarkers+'</div>'+
-      '<figcaption class="plot-footer" id="comparison-caption"><span>'+dateAt(start)+'</span><span class="axis-unit"></span><span>'+
+      '<figcaption class="plot-footer" id="comparison-caption"><span>'+dateAt(start)+'</span><span class="axis-center">'+
+      '<span class="axis-unit"></span><output class="compact-date" aria-label="查看日期" aria-live="polite"></output></span><span>'+
       dateAt(end)+'</span></figcaption></figure>':'<p class="empty">这个区间没有可绘制的记录</p>')+
-    compactReadout+(portfolio?'':'<div class="series-actions" hidden><button class="quiet series-zoom" aria-pressed="false">只看这台</button>'+
+    (portfolio?'':'<div class="series-actions" hidden><button class="quiet series-zoom" aria-pressed="false">只看这台</button>'+
       '<button class="quiet series-reset">取消高亮</button></div>')+'</div>';
 }
 
@@ -1739,8 +1766,7 @@ function mountComparison() {
   const {start,end,series,portfolio}=comparisonModel;
   const ctx=canvas.getContext('2d');
   const output=figure.querySelector('.chart-context output'),axisUnit=figure.querySelector('.axis-unit');
-  const compactReadout=figure.querySelector('.compact-readout');
-  const stage=canvas.parentElement;
+  const compactDate=figure.querySelector('.compact-date');
   const crossings=figure.querySelector('.compact-crossings');
   const crossingRows=new Map([...(crossings?.children??[])].map(row=>[row.dataset.crossing,row]));
   const purchaseButtons=[...figure.querySelectorAll('[data-purchase-date]')];
@@ -1754,7 +1780,7 @@ function mountComparison() {
   const scaleForView=()=>comparisonScale(!portfolio && state.focusOnly && state.compareDevice ?
     series.filter(item=>item.device.id===state.compareDevice):series);
   let pointerDate=null,hovered=null,chartHover=false,layout,frame=0,scale=scaleForView();
-  let touchPointer=null,pressedPurchase=null,hoveredPurchase=null;
+  let touchPointer=null,pressedPurchase=null,hoveredPurchase=null,dateActive=false;
   const activePurchase=()=>hoveredPurchase??pressedPurchase;
 
   function pointValue(item,date) {
@@ -1785,13 +1811,11 @@ function mountComparison() {
   }
 
   function positionCrossings(visible,px,y,tone,fontFamily) {
-    const {left,width,top,bottom,compact}=layout;
-    const right=width-9;
+    const {left,right,top,bottom}=layout;
     const useRight=right-px>=px-left;
     const edge=useRight?px+7:px-7;
     const available=useRight?right-edge:edge-left;
-    const fontSize=compact?11:12;
-    const gap=Math.min(compact?18:21,(bottom-top)/Math.max(1,visible.length));
+    const gap=Math.min(18,(bottom-top)/Math.max(1,visible.length));
     const labels=spaceChartLabels(visible.map(entry=>({...entry,anchorY:renderedY(entry.item,pointerDate,y)})),top,bottom,gap);
     const ids=new Set(labels.map(({item})=>item.device.id));
     for(const [id,row] of crossingRows) row.hidden=!ids.has(id);
@@ -1800,11 +1824,10 @@ function mountComparison() {
       const selected=item.device.id===showId();
       row.toggleAttribute('data-highlighted',selected);
       row.setAttribute('aria-pressed',String(item.device.id===state.compareDevice));
-      row.tabIndex=compact?0:-1;
       const amount=row.querySelector('strong'), label=costLabel(value);
-      ctx.font='500 '+fontSize+'px '+fontFamily;
+      ctx.font='500 11px '+fontFamily;
       const nameWidth=ctx.measureText(item.device.name).width;
-      ctx.font='620 '+fontSize+'px '+fontFamily;
+      ctx.font='620 11px '+fontFamily;
       const amountWidth=Math.max(ctx.measureText(label).width,ctx.measureText(label.replace(/\d/g,'0')).width);
       const tagWidth=Math.min(available,Math.ceil(nameWidth+amountWidth)+14);
       row.style.setProperty('--tag-x',(useRight?edge:edge-tagWidth)+'px');
@@ -1860,14 +1883,15 @@ function mountComparison() {
     context.toggleAttribute('data-inspecting',Boolean(activeId)||pointerDate!==null);
     const lastLabel='区间末值';
     const event=activePurchase();
+    context.toggleAttribute('data-purchase',Boolean(event));
     axisUnit.textContent=(scale.compressed?'压缩刻度':'线性刻度')+' · 元 / 天';
     output.textContent=event?.getAttribute('aria-label') ?? (pointerDate===null ?
       (activeId?chosen.device.name+(state.focusOnly?' · 仅显示这台':' · '+lastLabel):lastLabel) :
       dateAt(pointerDate)+(selectedValue===undefined ? ' · 日均成本' :
         ' · '+chosen.device.name+' '+costLabel(selectedValue)+' / 天'));
     output.title=output.textContent;
-    compactReadout.hidden=!event && pointerDate===null;
-    if(!compactReadout.hidden) compactReadout.textContent=output.textContent;
+    const dateText=dateActive && pointerDate!==null?dateAt(pointerDate):'';
+    if(compactDate.value!==dateText) compactDate.value=dateText;
     for(let i=0;i<rows.length;i++){
       const row=rows[i],item=series[i];
       if(!portfolio){
@@ -1901,7 +1925,7 @@ function mountComparison() {
     const top=13,bottom=height-25,duration=Math.max(DAY,end-start);
     const x=date=>left+(date-start)/duration*(right-left);
     const y=value=>bottom-(scale.project(value)-scale.min)/(scale.max-scale.min)*(bottom-top);
-    layout={compact,width,left,right,top,bottom,x,y,labels:[]};
+    layout={compact,left,right,top,bottom,x,y,labels:[]};
     ctx.font='11px -apple-system, sans-serif';
     ctx.textBaseline='middle';ctx.textAlign='right';
     let lastTick=-Infinity;
@@ -1960,12 +1984,12 @@ function mountComparison() {
     visible.filter(item=>item.device.id!==focused).forEach(drawLine);
     const chosen=visible.find(item=>item.device.id===focused) || (portfolio?visible[0]:null);
     if(chosen && !portfolio) drawLine(chosen);
-    const following=Boolean(crossings && pointerDate!==null && chartHover);
-    stage.toggleAttribute('data-following',following);
+    const following=Boolean(compact && crossings && pointerDate!==null && chartHover);
     if(crossings) crossings.hidden=!following;
     if(pointerDate!==null && chartHover){
-      const readings=visibleAt(pointerDate);
-      const intersecting=readings.map(({item})=>item);
+      const readings=following?visibleAt(pointerDate):[];
+      const intersecting=following?readings.map(({item})=>item):
+        chosen && pointValue(chosen,pointerDate)!==undefined?[chosen]:[];
       if(following) positionCrossings(readings,x(pointerDate),y,tone,styles.fontFamily);
       intersecting.sort((a,b)=>Number(a===chosen)-Number(b===chosen));
       for(const item of intersecting){
@@ -1988,7 +2012,6 @@ function mountComparison() {
       const row=rowByItem.get(item);
       row.style.setProperty('--label-y',labelY+'px');
       row.style.setProperty('--series-opacity',selected?1:focused?.63:1);
-      if(following) continue;
       const targetX=right+11;
       ctx.strokeStyle=lineTone(item);
       ctx.globalAlpha=selected?.8:focused?.24:.50;
@@ -2033,10 +2056,10 @@ function mountComparison() {
         }
       }
     }
-    updateLabels();invalidate();
+    dateActive=chartHover;updateLabels();invalidate();
   }
   const clear=()=>{
-    pointerDate=null;hovered=null;chartHover=false;
+    pointerDate=null;hovered=null;chartHover=false;dateActive=false;
     updateLabels();invalidate();
   };
   canvas.addEventListener('pointermove',inspect);
@@ -2049,14 +2072,18 @@ function mountComparison() {
     inspect(event);
   });
   canvas.addEventListener('pointerup',event=>{
-    if(event.pointerId===touchPointer) touchPointer=null;
+    if(event.pointerId!==touchPointer) return;
+    touchPointer=null;dateActive=false;updateLabels();
   });
   canvas.addEventListener('pointerleave',event=>{if(event.pointerType!=='touch') clear()});
   canvas.addEventListener('pointercancel',event=>{
     if(event.pointerId===touchPointer) touchPointer=null;
     clear();
   });
-  canvas.addEventListener('blur',event=>{if(!crossings?.contains(event.relatedTarget)) clear()});
+  canvas.addEventListener('blur',event=>{
+    if(!crossings?.contains(event.relatedTarget)) clear();
+    else {dateActive=false;updateLabels()}
+  });
   canvas.addEventListener('focus',()=>{
     if(pointerDate===null){pointerDate=end;chartHover=true;updateLabels();invalidate()}
   });
@@ -2067,7 +2094,7 @@ function mountComparison() {
     if(!Object.hasOwn(moves,event.key)) return;
     event.preventDefault();
     pointerDate=Math.min(end,Math.max(start,moves[event.key]));
-    hovered=null;chartHover=true;updateLabels();invalidate();
+    hovered=null;chartHover=true;dateActive=true;updateLabels();invalidate();
   });
   if(portfolio){
     for(const button of purchaseButtons){
@@ -2104,7 +2131,7 @@ function mountComparison() {
         if(!state.compareDevice) state.focusOnly=false;
       }
       hovered=null;
-      if(!button.dataset.crossing){pointerDate=null;chartHover=false}
+      if(!button.dataset.crossing){pointerDate=null;chartHover=false;dateActive=false}
       if(button===reset) rows.find(item=>!item.hidden)?.focus({preventScroll:true});
       scale=scaleForView();updateLabels();invalidate();
     });
@@ -2135,6 +2162,7 @@ const icons = {
   media:'<rect x="3" y="7" width="18" height="10" rx="3"/><path d="M16.5 13h.01"/>',
   speaker:'<rect x="5" y="3" width="14" height="18" rx="7"/><path d="M9 9h6m-6 3h6m-6 3h6"/>',
   search:'<circle cx="10.5" cy="10.5" r="5.8"/><path d="m15 15 4.5 4.5"/>',
+  chevronDown:'<path d="m6 9 6 6 6-6"/>',
 };
 const icon = name => '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">' + icons[name] + '</svg>';
 const esc = value => String(value ?? '').replace(/[&<>"']/g,char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
@@ -2149,7 +2177,8 @@ const LEGACY_PREVIEW_STORAGE = 'kept-html-preview-records-v1';
 const THEME = 'kept-html-preview-theme-v1';
 const viewNames = {overview:'设备摘要',devices:'设备清单'};
 const viewFromURL = () => Object.hasOwn(viewNames,location.hash.slice(1)) ? location.hash.slice(1) : 'overview';
-const state = {view:viewFromURL(),chartMode:'devices',overviewRange:'all',compareDevice:null,focusOnly:false,rank:'daily',mode:'list',status:'全部',category:'全部',brand:'*',breakdown:'brand',sort:'date',query:'',detailId:null,detailRange:'year'};
+const collectionDefaults = {status:'全部',category:'全部',brand:'*',sort:'date'};
+const state = {view:viewFromURL(),chartMode:'devices',overviewRange:'all',compareDevice:null,focusOnly:false,rank:'daily',mode:'list',...collectionDefaults,breakdown:'brand',query:'',detailId:null,detailRange:'year'};
 const plots = new Map();
 let plotCleanups = [];
 let previous = null;
@@ -2343,7 +2372,7 @@ function deviceLine(item,recent=false) {
   const {device,point} = item;
   return '<button class="device-line" data-device="' + esc(device.id) + '">' +
     deviceIcon(device) + '<span class="device-copy"><span class="device-content"><span class="device-name" translate="no">' +
-    esc(device.name) + '</span><span class="device-meta">' + esc([device.brand ? brandLabel(device.brand) : '', device.category, statusFor(item)].filter(Boolean).join(' · ')) +
+    esc(device.name) + '</span><span class="device-meta">' + esc([device.brand, statusFor(item)].filter(Boolean).join(' · ')) +
     '</span></span><span class="device-trailing"><strong class="device-money">' + (recent?money(device.purchasePrice):trackLabel(point)) +
     (!recent && point ? '<small> / 天</small>' : '') + '</strong><span class="device-date">' + displayDate(device.purchaseDate) + '</span></span></span></button>';
 }
@@ -2372,16 +2401,23 @@ function optionSet(options,current) {
   return options.map(([value,label]) => '<option value="' + esc(value) + '"' + (value === current ? ' selected' : '') + '>' + esc(label) + '</option>').join('');
 }
 function collection() {
-  const cats = [['全部','所有类型'],...Object.keys(categories).map(item => [item,item])];
-  const brands = [['*','所有品牌'],...groupByBrand(catalog).map(group=>[group.key,group.label])];
+  const cats = [['全部','全部'],...Object.keys(categories).map(item => [item,item])];
+  const brands = [['*','全部'],...groupByBrand(catalog).map(group=>[group.key,group.label])];
+  const filter = (key,label,options) => '<fieldset><legend>'+label+'</legend><div class="filter-options">'+
+    options.map(([value,title])=>'<label><input type="radio" name="'+key+'" value="'+esc(value)+'"'+
+      (value===state[key]?' checked':'')+'><span>'+esc(title)+'</span></label>').join('')+'</div></fieldset>';
   return heading('设备清单') +
     '<div class="toolbar collection-toolbar"><div class="controls collection-controls"><label class="search">' + icon('search') +
     '<input id="query" type="search" aria-label="搜索设备" name="search" autocomplete="off" placeholder="搜索设备…" value="' + esc(state.query) + '"></label>' +
-    '<select id="status-filter" class="field-control" aria-label="设备状态">' + optionSet([['全部','所有状态'],['在用','在用'],['归档','归档'],['已停用','已停用']],state.status) +
-    '</select><select id="category-filter" class="field-control" aria-label="设备类型">' + optionSet(cats,state.category) +
-    '</select><select id="brand-filter" class="field-control" aria-label="设备品牌">' + optionSet(brands,state.brand) +
-    '</select><select id="sort" class="field-control" aria-label="排序方式">' + optionSet([['date','最近购入'],['daily','日均成本'],['name','设备名称']],state.sort) +
-    '</select></div><div class="collection-views"><p class="result-text" id="result-text" aria-live="polite"></p>' +
+    '<details class="collection-filters"><summary class="filter-toggle field-control">筛选<span class="filter-count" hidden></span>'+
+    icon('chevronDown')+'</summary><form class="filter-menu card" aria-label="设备筛选和排序">'+
+    filter('status','状态',[['全部','全部'],['在用','在用'],['归档','归档'],['已停用','已停用']]) +
+    filter('category','类型',cats) +
+    filter('brand','品牌',brands) +
+    filter('sort','排序方式',[['date','最近购入'],['daily','日均成本'],['name','设备名称']]) +
+    '<div class="filter-actions"><button type="button" class="quiet" data-command="reset-filters">重置</button>'+
+    '<button type="button" class="secondary" data-command="close-filters">完成</button></div></form></details>'+
+    '</div><div class="collection-views"><p class="result-text" id="result-text" aria-live="polite"></p>' +
     segment('设备视图','mode',[['list','列表'],['brand','按品牌'],['timeline','时间线']],state.mode) +
     '</div></div><div id="results"></div>';
 }
@@ -2390,15 +2426,20 @@ function syncResults() {
   const items = catalog.filter(item => {
     const {device} = item;
     const statusMatch = state.status === '全部' || (state.status === '在用' ? active.includes(item) : statusFor(item) === state.status);
+    const alias = Object.hasOwn(brandAliases,device.brand) ? brandAliases[device.brand] : '';
     return statusMatch && (state.category === '全部' || device.category === state.category) &&
       (state.brand==='*' || brandKey(device)===state.brand) &&
-      (!query || [device.name,brandLabel(device.brand),device.tags,device.notes,device.channel,device.additionalDetail].join(' ').toLowerCase().includes(query));
+      (!query || [device.name,brandLabel(device.brand),alias,device.category,device.tags,device.notes,device.channel,device.additionalDetail].join(' ').toLowerCase().includes(query));
   });
   items.sort((a,b) => {
     if (state.sort === 'daily') return (b.point?.daily ?? -Infinity) - (a.point?.daily ?? -Infinity);
     if (state.sort === 'name') return a.device.name.localeCompare(b.device.name,'zh-CN');
     return b.device.purchaseDate.localeCompare(a.device.purchaseDate);
   });
+  const count=Object.keys(collectionDefaults).filter(key=>state[key]!==collectionDefaults[key]).length;
+  const filterCount=document.querySelector('.filter-count');
+  filterCount.hidden=count===0;
+  filterCount.textContent=count;
   document.querySelector('#result-text').textContent = items.length + ' 件设备';
   document.querySelector('#results').innerHTML = !items.length ? '<div class="card empty">没有符合条件的设备</div>' :
     state.mode==='timeline'?timeline(items):state.mode==='brand'?
@@ -2838,6 +2879,17 @@ document.addEventListener('click',event=>{
       break;
     }
     case 'reset-date': setDate(localDate());break;
+    case 'reset-filters':
+      Object.assign(state,collectionDefaults);
+      button.form.querySelectorAll('input').forEach(input=>{input.checked=input.value===state[input.name]});
+      syncResults();
+      break;
+    case 'close-filters': {
+      const details=button.closest('details');
+      details.open=false;
+      details.querySelector('summary').focus();
+      break;
+    }
     case 'import': importPanel();break;
     case 'export': download();break;
     case 'undo': {
@@ -2861,8 +2913,23 @@ document.addEventListener('input',event=>{
   if (event.target.id==='query') {state.query=event.target.value;syncResults()}
 });
 document.addEventListener('change',event=>{
-  const key={'status-filter':'status','category-filter':'category','brand-filter':'brand',sort:'sort'}[event.target.id];
-  if(key) {state[key]=event.target.value;syncResults()}
+  const option=event.target;
+  if(option.form?.classList.contains('filter-menu') && Object.hasOwn(collectionDefaults,option.name)){
+    state[option.name]=option.value;syncResults();
+  }
+});
+document.addEventListener('pointerdown',event=>{
+  const filters=main.querySelector('.collection-filters[open]');
+  if(filters && !filters.contains(event.target)) filters.open=false;
+});
+document.addEventListener('keydown',event=>{
+  if(event.key!=='Escape' || panel.open || detailDialog.open) return;
+  const filters=main.querySelector('.collection-filters[open]');
+  if(filters){
+    event.preventDefault();
+    filters.open=false;
+    filters.querySelector('summary').focus();
+  }
 });
 document.addEventListener('submit',event=>{
   if(event.target.id==='date-form') {

@@ -25,10 +25,10 @@ test("summary shows all curves, links labels, and keeps the range across modes",
   const plot = (await chart.boundingBox())!;
   const rail = (await page.locator(".series-list").boundingBox())!;
   await page.mouse.move(plot.x + plot.width - rail.width - 28, plot.y + 75);
-  await expect(page.locator(".comparison-stage")).toHaveAttribute("data-following", "");
-  const following = page.locator('.crossing-row[data-crossing="ipad-pro-2020"]');
-  await expect(following).toBeVisible();
-  expect((await following.boundingBox())!.width).toBeLessThan(180);
+  await expect(page.locator(".chart-context output")).toHaveText(/^2026\./);
+  await expect(page.locator(".series-list")).toBeVisible();
+  await expect(page.locator(".compact-crossings")).toBeHidden();
+  expect((await page.locator(".series-list").boundingBox())!.x).toBe(rail.x);
   await page.getByRole("button", { name: "近 30 天", exact: true }).click();
   await page.getByRole("button", { name: "在用组合", exact: true }).click();
   await expect(page.getByRole("button", { name: "近 30 天", exact: true })).toHaveAttribute("aria-pressed", "true");
@@ -47,15 +47,26 @@ test("mobile chart uses the available width and retains device names", async ({ 
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(393);
   await expect(page.locator(".series-list")).toBeHidden();
   await expect(page.getByLabel("高亮一台设备")).toHaveCount(0);
+  await expect(page.locator(".axis-unit")).toBeHidden();
+  await expect(page.locator(".compact-date")).toHaveText("");
+  const initialHeight = (await page.locator(".stats-top").boundingBox())!.height;
   await chart.focus();
   await chart.press("End");
+  await expect(page.locator(".compact-date")).toHaveText("2026.11.20");
   await expect(page.locator('.crossing-row[data-crossing="dji-pocket-3"]')).toContainText("Osmo Pocket 3");
+  expect((await page.locator(".stats-top").boundingBox())!.height).toBe(initialHeight);
   await page.getByRole("navigation", { name: "主导航" }).getByRole("link", { name: "设备" }).click();
-  const filters = await page.locator(".collection-controls > select").evaluateAll((elements) =>
-    elements.map((element) => Math.round(element.getBoundingClientRect().width)));
-  expect(new Set(filters).size).toBe(1);
-  await page.getByLabel("设备品牌").selectOption("dji");
+  await expect(page.getByRole("group", { name: "品牌" })).toBeHidden();
+  await page.locator(".filter-toggle").click();
+  const filterMenu = page.getByRole("form", { name: "设备筛选和排序" });
+  await expect(filterMenu.getByRole("group")).toHaveCount(4);
+  await filterMenu.getByRole("radio", { name: "DJI", exact: true }).check();
+  await filterMenu.getByRole("button", { name: "完成" }).click();
+  await expect(filterMenu).toBeHidden();
   await expect(page.locator("#results .device-name")).toHaveText(["Osmo Pocket 3", "DJI Mini 5 Pro"]);
+  await expect(page.locator("#results .device-meta").first()).toHaveText("DJI · 持有");
+  await page.getByLabel("搜索设备").fill("无人机");
+  await expect(page.locator("#results .device-name")).toHaveText(["DJI Mini 5 Pro"]);
 });
 
 for (const legacyKey of ["wuji-score-devices-v1", "wuji-devices-v1"]) {
