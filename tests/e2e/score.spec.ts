@@ -1,25 +1,41 @@
 import { expect, test } from "@playwright/test";
 import { initialDevices } from "../../src/data/devices";
 
+test.beforeEach(async ({ page }) => {
+  await page.clock.setFixedTime(new Date("2026-11-20T10:00:00+08:00"));
+});
+
 test("summary shows all curves, links labels, and keeps the range across modes", async ({ page }) => {
   await page.goto("/#stats");
   await expect(page).toHaveURL(/#overview$/);
   const navigation = page.getByRole("navigation", { name: "主导航" });
   await expect(navigation.getByRole("link")).toHaveText(["摘要", "设备"]);
-  await expect(page.locator(".stats-values")).toContainText("¥2,082.77");
+  await expect(page.locator(".stats-values")).toContainText("¥1,743.99");
   await expect(page.locator(".analytics-grid > section").first()).toContainText("成本排行");
   await expect(page.locator(".series-list [data-series]:visible")).toHaveCount(13);
   const series = page.locator('[data-series="macbook-pro-proledxdr-14"]');
-  await expect(series).toContainText("14 英寸 MacBook Pro（PROLED XDR 显示屏）");
-  await expect(series).toContainText("¥2,029.90");
+  await expect(series).toContainText("MacBook Pro（PROLED XDR）");
+  await expect(series).toContainText("¥1,691.58");
   await series.hover();
   await expect(series).toHaveAttribute("data-highlighted", "");
   await series.click();
   await expect(series).toHaveAttribute("aria-pressed", "true");
+  const chart = page.locator(".comparison-canvas");
+  await chart.scrollIntoViewIfNeeded();
+  const plot = (await chart.boundingBox())!;
+  const rail = (await page.locator(".series-list").boundingBox())!;
+  await page.mouse.move(plot.x + plot.width - rail.width - 28, plot.y + 75);
+  await expect(page.locator(".comparison-stage")).toHaveAttribute("data-following", "");
+  const following = page.locator('.crossing-row[data-crossing="ipad-pro-2020"]');
+  await expect(following).toBeVisible();
+  expect((await following.boundingBox())!.width).toBeLessThan(180);
   await page.getByRole("button", { name: "近 30 天", exact: true }).click();
   await page.getByRole("button", { name: "在用组合", exact: true }).click();
   await expect(page.getByRole("button", { name: "近 30 天", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator(".axis-unit")).toContainText("较期初变化");
+  const marker = page.getByRole("button", { name: /2026.11.09 购入 MacBook Pro/ });
+  await marker.click();
+  await expect(page.locator(".chart-context output")).toContainText("¥20,299.00");
+  await expect(page.getByRole("group", { name: "纵轴显示" })).toHaveCount(0);
 });
 
 test("mobile chart uses the available width and retains device names", async ({ page }) => {
@@ -30,9 +46,14 @@ test("mobile chart uses the available width and retains device names", async ({ 
   expect((await chart.boundingBox())!.width).toBeGreaterThan(300);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(393);
   await expect(page.locator(".series-list")).toBeHidden();
-  await page.getByLabel("高亮一台设备").selectOption("dji-pocket-3");
-  await expect(page.locator(".compact-readout")).toContainText("Osmo Pocket 3");
+  await expect(page.getByLabel("高亮一台设备")).toHaveCount(0);
+  await chart.focus();
+  await chart.press("End");
+  await expect(page.locator('.crossing-row[data-crossing="dji-pocket-3"]')).toContainText("Osmo Pocket 3");
   await page.getByRole("navigation", { name: "主导航" }).getByRole("link", { name: "设备" }).click();
+  const filters = await page.locator(".collection-controls > select").evaluateAll((elements) =>
+    elements.map((element) => Math.round(element.getBoundingClientRect().width)));
+  expect(new Set(filters).size).toBe(1);
   await page.getByLabel("设备品牌").selectOption("dji");
   await expect(page.locator("#results .device-name")).toHaveText(["Osmo Pocket 3", "DJI Mini 5 Pro"]);
 });
