@@ -1,13 +1,2703 @@
 <!doctype html>
-<html lang="zh-CN" data-theme="light">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#fafafa" />
-    <meta name="description" content="kept · 设备总谱。沿着时间，看见每一天的成本。" />
-    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <script>try{document.documentElement.dataset.theme=localStorage.getItem('kept-theme-v1')==='dark'?'dark':'light'}catch{}</script>
-    <title>kept · 设备总谱</title>
-  </head>
-  <body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#08090b">
+<title>kept · 设备账本</title>
+<style>
+:root {
+  color-scheme:dark;
+  --bg:#08090b; --surface:#1c1c1e; --inset:#262628; --control:#303033; --selected:#505054;
+  --line:#353538; --grid:#414145; --ink:#f7f7f8; --muted:#a1a1aa; --sub:#a1a1aa;
+  --accent:#0091ff; --investment-color:#6d7cff; --cost-color:#ff9230; --bar:#929298; --bar-secondary:#636369; --bar-track:#2c2c2e; --danger:#ff8386;
+  --glass-solid:#262629; --glass-tint:rgb(46 46 51 / .57); --glass-dense:rgb(26 26 29 / .84);
+  --glass-edge:rgb(255 255 255 / .15); --glass-lip:rgb(255 255 255 / .39);
+  --glass-inner:rgb(255 255 255 / .10); --glass-shade:rgb(0 0 0 / .48);
+  --glass-well:rgb(14 14 17 / .87); --glass-hover:rgb(255 255 255 / .09);
+  --glass-sample:blur(12px) saturate(145%) brightness(.76);
+  --glass-primary:rgb(0 145 255 / .84); --scroll-veil:rgb(8 9 11 / .74);
+  --pane-solid:#1c1c21; --pane-tint:rgb(46 46 55 / .52); --pane-edge:rgb(255 255 255 / .10);
+  --pane-lip:rgb(255 255 255 / .17); --pane-inner:rgb(255 255 255 / .035);
+  --well-tint:rgb(255 255 255 / .055); --well-lip:rgb(255 255 255 / .09);
+  --series:#a7b4da; --series-archived:#90919d;
+  --radius:28px; --gutter:clamp(18px,4vw,64px);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  font-synthesis:none;
+}
+:root[data-theme="light"] {
+  color-scheme:light;
+  --bg:#f2f2f7; --surface:#fff; --inset:#f2f2f7; --control:#e7e7ec; --selected:#fff;
+  --line:#dddde3; --grid:#d5d5dd; --ink:#17171a; --muted:#5c5c67; --sub:#62626c;
+  --accent:#0063bb; --investment-color:#564ade; --cost-color:#b74d00; --bar:#6c6c74; --bar-secondary:#83838a; --bar-track:#e9e9ed; --danger:#a62a30;
+  --glass-solid:#f6f6fa; --glass-tint:rgb(255 255 255 / .63); --glass-dense:rgb(247 247 251 / .90);
+  --glass-edge:rgb(32 32 62 / .12); --glass-lip:rgb(255 255 255 / .96);
+  --glass-inner:rgb(255 255 255 / .56); --glass-shade:rgb(30 30 52 / .15);
+  --glass-well:rgb(255 255 255 / .91); --glass-hover:rgb(0 0 0 / .07);
+  --glass-sample:blur(12px) saturate(135%) brightness(1.04);
+  --glass-primary:rgb(0 99 187 / .94); --scroll-veil:rgb(242 242 247 / .82);
+  --pane-solid:#fff; --pane-tint:rgb(255 255 255 / .68); --pane-edge:rgb(31 35 63 / .085);
+  --pane-lip:rgb(255 255 255 / .92); --pane-inner:rgb(255 255 255 / .55);
+  --well-tint:rgb(49 53 86 / .06); --well-lip:rgb(255 255 255 / .75);
+  --series:#596d9e; --series-archived:#626575;
+}
+* {box-sizing:border-box}
+html {scroll-padding:90px 0 23px}
+body {margin:0;background:var(--bg);color:var(--ink);font-size:16px}
+h1,h2,h3,p,figure {margin:0}
+h1,h2,h3 {text-wrap:balance}
+button,input,select,textarea {font:inherit}
+button {border:0;background:none;cursor:pointer;color:inherit;touch-action:manipulation}
+button:disabled {opacity:.55;cursor:default}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible {
+  outline:2px solid var(--accent);outline-offset:3px
+}
+main[tabindex]:focus {outline:0}
+[hidden] {display:none!important}
+.icon {width:20px;height:20px;display:block;flex:none;stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.skip {position:fixed;top:7px;left:10px;z-index:8;transform:translateY(-150%);padding:12px 16px;background:var(--surface);color:var(--ink);border-radius:10px}
+.skip:focus {transform:none}
+
+.top {position:sticky;z-index:4;top:0}
+.top::before {position:absolute;content:"";inset:0 0 -20px;pointer-events:none;background:var(--scroll-veil);mask-image:linear-gradient(#000 38%,transparent);opacity:0}
+.top[data-scrolled]::before {opacity:1}
+.glass {
+  border:1px solid var(--glass-edge);background:var(--glass-solid);corner-shape:round;
+  box-shadow:inset 0 1px 1px var(--glass-lip),inset 1px 0 2px var(--glass-inner),
+    inset 0 -1px 2px var(--glass-inner),0 5px 18px -8px var(--glass-shade);
+}
+@supports (backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px)) {
+  .glass:not([hidden]) {
+    background:var(--glass-tint);
+    -webkit-backdrop-filter:var(--glass-sample);
+    backdrop-filter:var(--glass-sample) var(--glass-lens,);
+  }
+}
+.top-inner,main,.footer {max-width:1536px;margin-inline:auto;padding-inline:var(--gutter)}
+.top-inner {height:76px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px}
+.brand {position:relative;color:var(--ink);text-decoration:none;justify-self:start;text-align:left;padding:5px 0;font-size:28px;font-weight:740;letter-spacing:-.065em;line-height:1}
+.brand-dot {color:var(--muted)}
+.navigation {
+  position:relative;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px;
+  padding:4px;width:226px;border-radius:99px;--tab-x:0%;
+}
+.navigation[data-current="devices"] {--tab-x:calc(100% + 2px)}
+.navigation::before {
+  content:"";position:absolute;inset-block:4px;left:4px;width:calc((100% - 10px)/2);
+  background:var(--glass-well);border-radius:99px;pointer-events:none;
+  transform:translateX(var(--tab-x));
+  box-shadow:inset 0 1px 0 var(--glass-inner),0 1px 5px var(--glass-shade);
+}
+.navigation a {
+  position:relative;text-decoration:none;color:var(--ink);display:flex;align-items:center;justify-content:center;
+  gap:8px;min-height:44px;padding:8px 12px;border-radius:99px;font-size:15px;font-weight:610;white-space:nowrap;
+}
+.navigation a[aria-current="page"] {color:var(--accent)}
+.navigation .icon {width:19px;height:19px}
+.top-actions {position:relative;display:flex;justify-self:end;align-items:center;gap:3px;padding:3px;border-radius:99px}
+.icon-button,.primary,.secondary,.quiet {display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:44px;padding:8px 15px;border-radius:99px;white-space:nowrap;font-size:15px;font-weight:610}
+.icon-button {width:44px;padding:0;background:var(--inset)}
+.primary {background:var(--accent);color:var(--bg)}
+:root[data-theme="light"] .primary {color:#fff}
+.secondary {background:var(--control)}
+.quiet {color:var(--accent);padding-inline:6px}
+.top-actions .icon-button {background:none}
+.top-actions .primary {
+  width:44px;padding:0;background:var(--glass-primary);
+  box-shadow:inset 0 1px 1px var(--glass-lip);
+}
+.top-actions .add-label {display:none}
+@media (hover:hover) {
+  .navigation a:hover,.top-actions .icon-button:hover {background:var(--glass-hover)}
+  .date-chip.glass:hover {border-color:var(--glass-lip);color:var(--ink)}
+  .icon-button:hover,.secondary:hover {background:var(--selected)}
+  .primary:hover {filter:brightness(1.12)}
+  .quiet:hover {text-decoration:underline}
+}
+
+main {min-height:calc(100vh - 157px);padding-top:29px;padding-bottom:56px}
+.page-heading {display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 4px 27px}
+h1 {font-size:clamp(38px,4.6vw,63px);font-weight:760;line-height:1.09;letter-spacing:-.065em}
+.page-heading p {margin-top:8px;color:var(--muted)}
+.date-chip {display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:6px 13px;border-radius:99px;color:var(--muted);white-space:nowrap;font-size:14px;font-variant-numeric:tabular-nums}
+.date-chip .icon {width:17px;height:17px}
+.card {
+  background:var(--pane-solid);border:1px solid var(--pane-edge);border-radius:var(--radius);min-width:0;
+  corner-shape:round;
+  box-shadow:inset 0 1px 0 var(--pane-lip),inset 0 0 12px var(--pane-inner),0 10px 24px -14px var(--glass-shade);
+}
+@supports (backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px)) {
+  .card {background:var(--pane-tint);-webkit-backdrop-filter:blur(16px) saturate(118%);backdrop-filter:blur(16px) saturate(118%)}
+}
+.card-top,.chart-top {display:flex;justify-content:space-between;align-items:center;gap:8px}
+.accent-heading {display:flex;align-items:center;gap:9px;color:var(--topic-color,var(--ink));font-size:20px;font-weight:690;letter-spacing:-.025em;white-space:nowrap}
+.accent-heading .icon {color:var(--topic-color,var(--muted));width:21px;height:21px;stroke-width:2.05}
+.summary-bottom {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin-top:20px;align-items:start}
+.summary-card {padding:22px 24px 21px}
+/* Apple HIG dark system blue, indigo and orange. Hue follows the metric across views. */
+.investment-card,.composition-card {--topic-color:var(--investment-color)}
+.trend-card,.rank-card {--topic-color:var(--cost-color)}
+.summary-card>.accent-heading,.summary-card>.card-top {min-height:37px}
+.summary-figure {
+  font-size:clamp(31px,3.65vw,56px);line-height:1.07;letter-spacing:-.065em;
+  font-weight:690;margin-top:13px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums
+}
+.trend-card .summary-figure {color:var(--cost-color)}
+.summary-figure small {font-size:.48em;letter-spacing:0;color:var(--muted);font-weight:630;white-space:nowrap}
+.summary-caption {font-size:16px;line-height:1.36;font-weight:590;color:var(--ink);margin-top:7px;min-height:26px}
+.comparator,.cost-deltas,.device-matrix {border-top:1px solid var(--line);margin-top:14px;padding-top:13px}
+.comparator {display:grid;gap:12px}
+.cost-deltas {display:grid;gap:0;margin-bottom:0}
+.cost-deltas>div {display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:9px 0}
+.cost-deltas>div+div {border-top:1px solid var(--line)}
+.cost-deltas dt {color:var(--muted);font-size:14px}
+.cost-deltas dd {margin:0;font-size:21px;font-weight:650;letter-spacing:-.035em;font-variant-numeric:tabular-nums}
+.cost-deltas small {font-size:13px;color:var(--muted);font-weight:510;letter-spacing:0}
+.comparison {display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px 9px}
+.comparison strong {font-size:23px;letter-spacing:-.032em;font-weight:650;font-variant-numeric:tabular-nums}
+.comparison>span {grid-column:2;grid-row:1;font-size:14px;color:var(--muted)}
+.comparison-track {height:12px;grid-column:1/-1;border-radius:6px;background:var(--bar-track);overflow:hidden}
+.comparison-track>span {display:block;width:var(--length);height:100%;background:var(--investment-color);border-radius:6px}
+.comparison+.comparison .comparison-track>span {background:var(--bar-secondary)}
+.status-actions {display:flex;gap:13px;flex-wrap:wrap}
+.status-actions button {display:inline-flex;align-items:center;gap:7px;min-height:26px;padding:0;color:var(--ink);font-weight:inherit}
+.status-actions button:hover {text-decoration:underline}
+.status-key {width:8px;height:8px;border-radius:50%;background:var(--ink)}
+.archived-key {border:1px solid var(--muted);background:transparent}
+.device-matrix {display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px 5px}
+.matrix-icon {
+  min-width:0;min-height:61px;display:grid;grid-template-rows:29px auto;justify-items:center;align-items:center;
+  gap:4px;padding:5px 1px;border:1px solid transparent;border-radius:12px;color:var(--ink);
+}
+.matrix-icon:hover,.matrix-icon:focus-visible {
+  background:var(--well-tint);border-color:var(--pane-edge);box-shadow:inset 0 1px 0 var(--well-lip);
+}
+.matrix-art {display:grid;place-items:center;width:100%;height:29px}
+.device-glyph {width:25px;height:25px;display:block;flex:none}
+.matrix-art .device-glyph {width:28px;height:28px;color:var(--ink)}
+.matrix-name {
+  max-width:100%;align-self:start;font-size:11px;font-weight:560;line-height:1.2;
+  overflow-wrap:anywhere;text-align:center;
+}
+.matrix-inactive,.matrix-inactive .matrix-art .device-glyph {color:var(--muted)}
+
+.segment {
+  display:flex;gap:2px;padding:3px;background:var(--well-tint);border:1px solid var(--pane-edge);
+  border-radius:99px;flex:none;box-shadow:inset 0 1px 0 var(--well-lip);
+}
+.segment button {min-height:30px;padding:5px 8px;border-radius:99px;font-size:13px;color:var(--muted);white-space:nowrap;font-weight:550}
+.segment button:hover {color:var(--ink)}
+.segment button[aria-pressed="true"] {
+  background:var(--well-tint);color:var(--ink);font-weight:660;
+  box-shadow:inset 0 1px 1px var(--pane-lip),inset 0 0 0 1px var(--pane-edge),0 2px 4px var(--glass-shade);
+}
+:root[data-theme="light"] .segment button[aria-pressed="true"] {background:var(--glass-well)}
+.plot {position:relative;min-width:0}
+.plot canvas {display:block;width:100%;height:172px;border-radius:4px;touch-action:pan-y}
+.plot-output {position:absolute;z-index:1;top:1px;left:7px;pointer-events:none;background:var(--glass-solid);border:1px solid var(--pane-edge);padding:6px 8px;border-radius:10px;box-shadow:inset 0 1px 0 var(--pane-lip);font-size:12px;white-space:nowrap}
+.plot-footer {display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+.delta {color:var(--muted)}
+
+.analytics-grid {display:grid;gap:20px;margin-top:20px;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);align-items:start}
+.analytics-sidebar {display:grid;gap:20px;min-width:0}
+.activity-card,.dashboard-card {padding:21px 24px 19px}
+.activity-title {font-size:19px;letter-spacing:-.04em}
+.card-list {margin-top:4px}
+.device-line {width:100%;display:grid;grid-template-columns:48px minmax(0,1fr);align-items:center;gap:0 12px;text-align:left;padding:0;min-height:68px}
+.device-line+.device-line .device-content,.device-line+.device-line .device-trailing {border-top:1px solid var(--line)}
+.rank-icon {
+  display:grid;place-items:center;width:45px;height:45px;padding:5px;flex:none;
+  color:var(--muted);border:1px solid var(--pane-edge);background:var(--well-tint);border-radius:12px;
+  box-shadow:inset 0 1px 0 var(--well-lip);
+}
+.rank-icon .device-glyph {width:24px;height:24px;color:var(--ink)}
+.device-content,.device-trailing {min-height:68px;display:flex;flex-direction:column;justify-content:center;min-width:0;gap:4px}
+.device-copy {display:grid;grid-template-columns:minmax(0,1fr) auto}
+.device-trailing {text-align:right;padding-left:10px}
+.device-name {display:block;font-size:17px;font-weight:580;overflow-wrap:anywhere}
+.device-meta {display:block;color:var(--muted);font-size:13px}
+.device-money {color:var(--ink);font-variant-numeric:tabular-nums;font-size:18px;letter-spacing:-.025em}
+.device-money small,.rank-value small {color:var(--muted);font-size:13px;font-weight:500;letter-spacing:0}
+.activity-card .device-money {font-size:19px}
+.device-date {font-size:13px;color:var(--muted);white-space:nowrap}
+.device-line:hover .device-name,.timeline-label:hover .device-name {color:var(--accent)}
+.rank-list,.distribution {display:grid;margin-top:11px}
+.rank-row,.distribution-row {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px 9px;align-items:center;text-align:left;padding:10px 0;min-height:57px}
+.rank-row+.rank-row,.distribution-row+.distribution-row {border-top:1px solid var(--line)}
+.rank-name,.distribution-row>span:first-child {font-size:15px;font-weight:590;overflow-wrap:anywhere}
+.rank-value,.distribution-row strong {text-align:right;font-size:15px;font-weight:660;white-space:nowrap;font-variant-numeric:tabular-nums}
+.rank-row:hover .rank-name,.distribution-row:hover>span:first-child {color:var(--accent)}
+.rank-bar,.distribution-bar {height:6px;border-radius:3px;background:var(--bar-track);overflow:hidden}
+.rank-bar {grid-column:1/-1}
+.rank-bar span,.distribution-bar span {display:block;height:100%;width:var(--fill);border-radius:inherit;background:var(--bar)}
+/* Highlight the leader in the ranked list and use one hue for the entire breakdown. */
+.distribution-bar span {background:var(--investment-color)}
+.rank-row:first-child .rank-bar span {background:var(--cost-color)}
+.distribution-row small {text-align:right;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+
+.toolbar {display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.controls {display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.field-control,.search {min-width:0;min-height:44px;border:1px solid transparent;border-radius:11px;background:var(--inset);color:var(--ink)}
+.field-control {padding:7px 11px;width:100%}
+select.field-control {appearance:auto;padding-right:10px}
+.controls>.field-control {width:auto}
+.search {display:flex;align-items:center;gap:8px;padding:0 11px}
+.toolbar .field-control,.search {
+  background:var(--well-tint);border-color:var(--pane-edge);box-shadow:inset 0 1px 0 var(--well-lip);
+}
+.search .icon {width:17px;height:17px;color:var(--muted)}
+.search input {width:clamp(110px,21vw,232px);min-width:0;height:42px;padding:0;border:0;background:transparent;color:var(--ink)}
+.search input:focus-visible {outline:0}
+.search:focus-within {outline:2px solid var(--accent);outline-offset:2px}
+.search input::placeholder {color:var(--muted)}
+.result-text {font-size:14px;color:var(--muted);margin:0 4px 12px}
+.brand-groups {display:grid;gap:14px}
+.brand-group h2 {display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:16px 0 9px;font-size:18px;overflow-wrap:anywhere}
+.brand-group h2 span {color:var(--muted);font-size:13px;font-weight:540;white-space:nowrap}
+.device-list {padding:0 22px}
+.timeline {padding:10px 21px}
+.timeline-row,.timeline-axis {display:grid;grid-template-columns:minmax(160px,.8fr) minmax(0,2fr) 110px;align-items:center;gap:16px}
+.timeline-axis {color:var(--muted);font-size:13px;padding:9px 0}
+.timeline-axis>span:last-child {text-align:right}
+.timeline-row {min-height:69px;border-top:1px solid var(--line)}
+.timeline-label {display:flex;align-items:center;text-align:left;gap:10px;padding:4px 0;min-width:0}
+.track {position:relative;height:40px;padding:0;text-align:left;width:100%;border-radius:5px}
+.track:hover {background:var(--inset)}
+.track-fill {position:absolute;top:17px;height:6px;min-width:3px;border-radius:4px;background:var(--bar)}
+.track-point {position:absolute;top:15px;width:10px;height:10px;border-radius:3px;background:var(--surface);border:2px solid var(--bar);transform:translateX(-50%)}
+.track[aria-label*="归档"] {opacity:.75}
+.axis-years {display:block;position:relative;min-height:1.25em}
+.axis-years span,.track-guide {position:absolute}
+.track-guide {top:0;bottom:0;width:1px;background:var(--grid);pointer-events:none}
+.timeline-money {text-align:right;font-size:15px;font-weight:630;font-variant-numeric:tabular-nums;white-space:nowrap}
+.empty {padding:24px 10px;color:var(--muted);text-align:center}
+
+.stats-top {padding:21px 25px 19px}
+.overview-chart-header {flex-wrap:wrap}
+.stat-label {display:flex;align-items:center;gap:9px;font-size:18px;font-weight:660;color:var(--cost-color)}
+.stats-values {display:flex;align-items:start;flex-wrap:wrap;gap:12px 20px;margin-top:15px}
+.stats-values>div {padding-right:20px;border-right:1px solid var(--line)}
+.stats-values>div:last-child {border:0}
+.stats-values span {font-size:14px;color:var(--muted)}
+.stats-values strong {display:block;font-size:clamp(25px,3.5vw,43px);letter-spacing:-.05em;margin-top:3px;font-variant-numeric:tabular-nums}
+.stats-values>div:first-child strong {color:var(--cost-color)}
+.stats-values small {color:var(--muted);font-size:.42em;letter-spacing:0;white-space:nowrap}
+.footer {min-height:66px;display:flex;align-items:center;justify-content:space-between;color:var(--muted);font-size:13px}
+.footer>span:first-child {font-size:18px;font-weight:730;color:var(--ink)}
+.foot-description {color:var(--muted);font-weight:500;font-size:12px;margin-left:4px}
+
+dialog {
+  width:min(730px,calc(100% - 32px));max-height:calc(100dvh - 44px);overscroll-behavior:contain;
+  padding:0;border:1px solid var(--line);border-radius:27px;background:var(--bg);color:var(--ink)
+}
+dialog::backdrop {background:rgba(0,0,0,.60)}
+body:has(dialog[open]) {overflow:hidden}
+#panel {width:min(550px,calc(100% - 32px));background:var(--surface)}
+.modal-top {position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 22px;background:var(--bg);border-bottom:1px solid var(--line)}
+#panel .modal-top {background:var(--surface)}
+@supports (backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px)) {
+  #detail .modal-top {
+    background:var(--glass-dense);
+    -webkit-backdrop-filter:var(--glass-sample);backdrop-filter:var(--glass-sample);
+  }
+  @media (min-width:761px) {
+    #panel {
+      background:var(--glass-dense);border-color:var(--glass-edge);
+      -webkit-backdrop-filter:var(--glass-sample);backdrop-filter:var(--glass-sample);
+      box-shadow:inset 0 1px 1px var(--glass-lip),0 12px 36px var(--glass-shade);
+    }
+    #panel .modal-top {background:var(--glass-dense)}
+  }
+}
+.modal-top h2 {font-size:25px;letter-spacing:-.035em;overflow-wrap:anywhere}
+.modal-title {display:flex;align-items:center;gap:10px;min-width:0}
+.modal-title p {font-size:13px;color:var(--muted);margin-top:4px}
+.modal-body {padding:19px 22px 24px}
+.modal-body>.card {padding:15px 17px;margin-bottom:13px}
+.modal-body h3 {font-size:18px;font-weight:680}
+.device-cost h3,.detail-daily {color:var(--cost-color)}
+.modal-body .plot {margin-top:11px}
+.modal-body .plot canvas {height:184px}
+.detail-metrics {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:12px 0 16px;margin-bottom:4px}
+.detail-metrics>div+div {padding-left:12px;border-left:1px solid var(--line)}
+.detail-metrics span {display:block;color:var(--muted);font-size:13px;margin-bottom:5px}
+.detail-metrics strong {font-size:clamp(16px,3vw,27px);letter-spacing:-.045em;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.detail-metrics strong small {font-size:12px;color:var(--muted);white-space:nowrap}
+.event {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);font-size:15px}
+.event strong {font-variant-numeric:tabular-nums}
+.event:last-child {border-bottom:0;padding-bottom:0}
+.event span small,.meta-grid dt {display:block;color:var(--muted);font-size:13px;margin-top:4px}
+.meta-grid {display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0 0}
+.meta-grid dd {margin:4px 0 0;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere}
+.meta-grid .wide {grid-column:1/-1}
+.modal-actions {display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:14px}
+.danger {color:var(--danger)}
+.form-grid {display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-grid label,.date-field {display:grid;gap:6px;color:var(--muted);font-size:14px;min-width:0}
+.form-grid .wide,.form-grid details {grid-column:1/-1}
+#panel .field-control {background:var(--control)}
+.form-grid details {padding:12px 0;border-top:1px solid var(--line)}
+.form-grid details summary {color:var(--ink);font-weight:620;cursor:pointer;padding:5px 0}
+.form-grid details .form-grid {margin-top:12px}
+textarea.field-control {min-height:84px;resize:vertical}
+.note-text {color:var(--muted);line-height:1.55;font-size:14px;margin-top:11px}
+.setting-row {display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid var(--line);font-size:15px}
+.date-field {margin-top:15px}
+.error {color:var(--danger);font-size:14px;margin-top:10px}
+.notice {position:fixed;z-index:6;bottom:22px;right:22px;border-radius:18px;padding:7px 13px;display:flex;align-items:center;gap:9px;color:var(--ink);font-size:14px;max-width:calc(100% - 32px)}
+.notice button {min-height:44px;padding:0 4px;color:var(--accent);font-weight:630}
+
+@media (max-width:1080px) {
+  .summary-bottom,.analytics-grid,.analytics-sidebar {gap:14px}
+  .summary-card {padding:19px 17px}
+  .accent-heading {font-size:18px;gap:6px}
+  .accent-heading .icon {width:19px;height:19px}
+  .summary-figure {font-size:clamp(30px,4.1vw,48px)}
+  .summary-caption {font-size:14px}
+  .device-matrix {gap:6px 3px}
+  .activity-card,.dashboard-card {padding:16px 18px}
+}
+@media (max-width:760px) {
+  :root {--gutter:max(16px,env(safe-area-inset-left),env(safe-area-inset-right));--radius:25px}
+  html {scroll-padding:70px 0 calc(86px + env(safe-area-inset-bottom))}
+  .top-inner {height:60px;grid-template-columns:1fr auto}
+  .top-actions {grid-column:2}
+  .brand {font-size:26px}
+  .navigation {position:fixed;left:50%;bottom:calc(10px + env(safe-area-inset-bottom));transform:translateX(-50%);width:clamp(186px,59vw,276px);max-width:calc(100vw - 24px)}
+  .navigation a {min-width:0;min-height:54px;flex-direction:column;gap:3px;font-size:12px;padding:4px 12px}
+  .navigation .icon {width:22px;height:22px}
+  main {padding-top:19px;padding-bottom:33px}
+  .page-heading {margin:0 0 19px}
+  h1 {font-size:clamp(32px,9.9vw,53px)}
+  .date-chip {font-size:13px;gap:5px;padding:5px 9px}
+  .date-chip .icon {width:15px;height:15px}
+  .date-prefix {display:none}
+  .summary-bottom,.analytics-grid,.analytics-sidebar {grid-template-columns:minmax(0,1fr);gap:11px}
+  .summary-card {padding:17px 18px 20px;min-height:0}
+  .summary-figure {font-size:clamp(38px,11vw,58px);margin-top:7px}
+  .summary-caption {font-size:15px}
+  .status-actions button {min-height:44px}
+  .comparator,.cost-deltas,.device-matrix {margin-top:9px}
+  .comparison strong {font-size:23px}
+  .summary-bottom,.analytics-grid {margin-top:11px}
+  .device-matrix {gap:7px}
+  .stats-top {padding:16px 16px 15px}
+  .device-list {padding:0 15px}
+  .device-content,.device-trailing {min-height:65px}
+  .device-line {grid-template-columns:40px minmax(0,1fr);column-gap:9px}
+  .rank-icon {width:38px;height:38px}
+  .rank-icon .device-glyph {width:20px;height:20px}
+  .device-name {font-size:15px}
+  .device-date {font-size:12px}
+  .device-money,.activity-card .device-money {font-size:16px}
+  .segment button {min-height:44px}
+  .search {flex:1 1 100%}
+  .search input {width:100%;font-size:16px}
+  .timeline {padding:8px 12px}
+  .timeline-row,.timeline-axis {grid-template-columns:minmax(0,1fr) auto;gap:0 8px}
+  .timeline-label {min-height:48px}
+  .track,.axis-years {grid-column:1/-1;grid-row:2}
+  .timeline-money,.timeline-axis>span:last-child {grid-column:2;grid-row:1}
+  .track {height:32px;margin-bottom:7px}
+  .track-fill {top:12px}
+  .track-point {top:10px}
+  .timeline-axis {row-gap:7px}
+  .stats-values {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px}
+  .stats-values>div {min-width:0;padding-right:8px}
+  .stats-values>div:nth-child(2) {border:0;padding-right:0}
+  .stats-values>div:nth-child(3) {display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 9px;grid-column:1/-1}
+  .stats-values>div:nth-child(3) strong {font-size:16px;letter-spacing:0}
+  .stats-values>div:nth-child(3) small {font-size:11px}
+  .stats-values>div:nth-child(-n+2) strong {font-size:clamp(20px,6.1vw,29px)}
+  .footer {min-height:140px;padding-bottom:78px;align-items:center}
+  .notice {bottom:calc(78px + env(safe-area-inset-bottom))}
+  dialog,#panel {width:100%;height:100dvh;max-height:100dvh;max-width:100%;margin:0;border:0;border-radius:0}
+  .modal-top {padding:11px var(--gutter)}
+  .modal-body {padding:14px var(--gutter) max(22px,env(safe-area-inset-bottom))}
+  .modal-top h2 {font-size:21px}
+}
+@media (max-width:355px) {
+  .date-chip .icon {display:none}
+  .summary-card {padding-inline:15px}
+  .summary-figure {font-size:36px}
+  .plot-footer {font-size:12px}
+  .device-date {font-size:11px}
+}
+
+@media (prefers-reduced-motion:no-preference) {
+  .navigation::before {transition:transform 240ms cubic-bezier(.22,.7,.3,1)}
+  .top::before {transition:opacity 140ms ease-out}
+}
+@media (prefers-reduced-transparency:reduce) {
+  .card {background:var(--pane-solid);-webkit-backdrop-filter:none;backdrop-filter:none}
+  .glass:not([hidden]),#detail .modal-top,#panel,#panel .modal-top {
+    background:var(--glass-solid);-webkit-backdrop-filter:none;backdrop-filter:none;
+  }
+  .top::before {mask-image:none;background:var(--bg);inset:0}
+  .top-actions .primary {background:var(--accent)}
+}
+
+.device-comparison {container-type:inline-size}
+.comparison-toolbar {
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:17px;
+}
+.chart-context {
+  min-width:0;flex:1 1 18ch;display:flex;align-items:baseline;gap:2px 12px;color:var(--muted);
+  font-size:13px;font-variant-numeric:tabular-nums;
+}
+.chart-context output {min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.comparison-count {font-weight:610;white-space:nowrap}
+.chart-controls {display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.comparison-figure {margin-top:13px}
+.comparison-stage {position:relative;--rail-width:clamp(192px,27cqw,316px)}
+.comparison-canvas {
+  width:100%;height:max(310px,calc(var(--curves)*23px + 48px));display:block;border-radius:6px;touch-action:pan-y;
+}
+.series-list {
+  position:absolute;inset-block:0;inset-inline-end:0;width:var(--rail-width);pointer-events:none;
+}
+.series-item {
+  position:absolute;inset-inline:0;top:var(--label-y,0px);transform:translateY(-50%);
+  display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:2px 10px;
+  min-height:22px;padding:3px 5px;min-width:0;border-radius:5px;text-align:left;
+  opacity:var(--series-opacity,1);
+}
+button.series-item {pointer-events:auto}
+.series-item:hover,.series-item[data-highlighted] {opacity:1;background:var(--well-tint)}
+.series-item[data-highlighted] .series-name,.series-item[data-highlighted] .series-value {color:var(--cost-color)}
+.series-item[aria-pressed="true"]:not([data-highlighted]) .series-name {color:var(--cost-color)}
+.series-name {font-size:12px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:610}
+.series-readout {display:flex;gap:5px;align-items:baseline;min-width:0}
+.series-archived {color:var(--muted);font-size:10px;white-space:nowrap}
+.series-value {color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.archived-series:not([data-highlighted]) .series-name {color:var(--muted)}
+.series-actions {display:flex;justify-content:flex-end;gap:8px;align-items:center;margin-top:4px}
+.series-actions .quiet {min-height:36px;font-size:13px}
+.compact-chart-tools {display:none}
+@container (max-width:619px) {
+  .comparison-stage .series-list {display:none}
+  .comparison-canvas {height:clamp(224px,35svh,300px)}
+  .chart-context output {display:none}
+  .chart-controls {width:100%;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:6px}
+  .chart-controls .segment {width:100%;min-width:0}
+  .chart-controls .segment button {flex:1;min-width:0;padding-inline:3px;font-size:11px}
+  .compact-chart-tools {display:grid;gap:7px;margin-top:12px}
+  .compact-chart-tools label {display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;color:var(--muted)}
+  .compact-chart-tools select {width:min(68%,220px);background:var(--glass-solid);border-color:var(--pane-edge)}
+  .compact-readout {min-height:18px;color:var(--muted);font-size:12px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+}
+@container (max-width:294px) {
+  .chart-controls {grid-template-columns:1fr;gap:5px}
+}
+@media (max-width:760px) {
+  .comparison-toolbar {margin-top:13px}
+  .chart-context {flex-basis:100%}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">跳至主要内容</a>
+<header class="top">
+  <div class="top-inner">
+    <a class="brand" href="#overview" data-view="overview" aria-label="kept，返回摘要"><span translate="no">kept<span class="brand-dot">.</span></span></a>
+    <nav class="navigation glass" aria-label="主导航">
+      <a href="#overview" data-view="overview" data-nav><span data-icon="overview"></span>摘要</a>
+      <a href="#devices" data-view="devices" data-nav><span data-icon="layers"></span>设备</a>
+    </nav>
+    <div class="top-actions glass">
+      <button class="icon-button" data-command="settings" title="账本设置" aria-label="账本设置"><span data-icon="settings"></span></button>
+      <button class="primary" data-command="add" aria-label="添加设备"><span data-icon="plus"></span><span class="add-label">添加设备</span></button>
+    </div>
+  </div>
+</header>
+<main id="main" tabindex="-1"></main>
+<footer class="footer"><span>kept<span class="brand-dot">.</span> <span class="foot-description">设备账本</span></span><span id="foot-date"></span></footer>
+<dialog id="detail" aria-labelledby="detail-title"></dialog>
+<dialog id="panel" aria-labelledby="panel-title"></dialog>
+<div id="notice" class="notice glass" role="status" hidden><span></span><button data-command="undo">撤销</button></div>
+<script>
+const iphoneAirDevice = {
+  id: 'iphone-air-2025',
+  name: 'iPhone Air',
+  brand: 'Apple',
+  status: '归档',
+  category: '手机',
+  purchasePrice: 3795,
+  purchaseDate: '2025-12-19',
+  channel: '',
+  warrantyEnd: '',
+  notes: '2026年1月23日售出',
+  tags: '深空黑色',
+  additional: 0,
+  additionalDetail: '',
+  archivedPrice: 3690,
+  archivedDate: '2026-01-23',
+  archivedWay: '已出售',
+  archivedThought: '',
+};
+
+const initialDevices = [
+  iphoneAirDevice,
+  {
+    id: 'apple-tv-4k',
+    name: 'Apple TV 4K',
+    brand: 'Apple',
+    status: '持有',
+    category: '影音',
+    purchasePrice: 1250,
+    purchaseDate: '2022-11-13',
+    channel: '',
+    warrantyEnd: '',
+    notes: '',
+    tags: '',
+    additional: 0,
+    additionalDetail: '',
+    archivedPrice: 0,
+    archivedDate: '',
+    archivedWay: '',
+    archivedThought: '',
+  },
+  {
+    id: 'airpods-pro-2',
+    name: 'AirPods Pro 2',
+    brand: 'Apple',
+    status: '持有',
+    category: '穿戴',
+    purchasePrice: 0,
+    purchaseDate: '2024-01-30',
+    channel: '',
+    warrantyEnd: '',
+    notes: '',
+    tags: '',
+    additional: 348,
+    additionalDetail: 'AppleCare+: ¥348.00 (2026-04-06)',
+    archivedPrice: 0,
+    archivedDate: '',
+    archivedWay: '',
+    archivedThought: '',
+  },
+  {
+    id: 'homepod-mini-2024',
+    name: 'HomePod mini_R',
+    brand: 'Apple',
+    status: '持有',
+    category: '影音',
+    purchasePrice: 0,
+    purchaseDate: '2024-02-02',
+    channel: '',
+    warrantyEnd: '',
+    notes: '价格待补充',
+    tags: '',
+    additional: 0,
+    additionalDetail: '',
+    archivedPrice: 0,
+    archivedDate: '',
+    archivedWay: '',
+    archivedThought: '',
+  },
+  {
+    id: 'apple-watch-s7',
+    name: 'Apple Watch S7',
+    brand: 'Apple',
+    status: '持有',
+    category: '穿戴',
+    purchasePrice: 3999,
+    purchaseDate: '2022-03-07',
+    channel: '',
+    warrantyEnd: '',
+    notes: '',
+    tags: '',
+    additional: 648,
+    additionalDetail: 'AppleCare+: ¥648.00 (2022-03-07)',
+    archivedPrice: 0,
+    archivedDate: '',
+    archivedWay: '',
+    archivedThought: '',
+  },
+  {
+    id: 'ipad-pro-2020',
+    name: 'iPad Pro 2020',
+    brand: 'Apple',
+    status: '持有',
+    category: '平板',
+    purchasePrice: 6888,
+    purchaseDate: '2020-04-07',
+    channel: '',
+    warrantyEnd: '',
+    notes: '',
+    tags: '',
+    additional: 5585,
+    additionalDetail:
+      'Apple Pencil: ¥911.00 (2020-04-07); 智能双面夹: ¥549.00 (2022-07-03); AppleCare+: ¥548.00 (2022-05-31); AppleCare（2年）: ¥999.00 (2020-04-07); Magic Keyboard: ¥2399.00 (2020-05-14); Apple Pencil 笔尖: ¥179.00 (2023-04-06)',
+    archivedPrice: 0,
+    archivedDate: '',
+    archivedWay: '',
+    archivedThought: '',
+  },
+  {
+    id: 'airpods-pro',
+    name: 'AirPods Pro',
+    brand: 'Apple',
+    status: '归档',
+    category: '穿戴',
+    purchasePrice: 1999,
+    purchaseDate: '2020-01-31',
+    channel: '',
+    warrantyEnd: '',
+    notes: '',
+    tags: '',
+    additional: 0,
+    additionalDetail: '',
+    archivedPrice: 590,
+    archivedDate: '2025-02-08',
+    archivedWay: '已出售',
+    archivedThought: '',
+  },
+  {
+    id: 'homepod-mini-2020',
+    name: 'HomePod mini_L',
+    brand: 'Apple',
+    status: '持有',
+    category: '影音',
+    purchasePrice: 749,
+    purchaseDate: '2020-12-11',
+    channel: '',
+    warrantyEnd: '',
+    notes: '',
+    tags: '',
+    additional: 0,
+    additionalDetail: '',
+    archivedPrice: 0,
+    archivedDate: '',
+    archivedWay: '',
+    archivedThought: '',
+  },
+  {
+    id: 'macbook-air',
+    name: 'MacBook Air（M1，2020 年）',
+    brand: 'Apple',
+    status: '归档',
+    category: '电脑',
+    purchasePrice: 9113,
+    purchaseDate: '2021-06-26',
+    channel: '',
+    warrantyEnd: '',
+    notes: '',
+    tags: '',
+    additional: 1555,
+    additionalDetail:
+      'AppleCare+: ¥1061.00 (2021-06-26); Magic Mouse 2: ¥494.00 (2021-06-26)',
+    archivedPrice: 2770,
+    archivedDate: '2026-11-19',
+    archivedWay: '已出售',
+    archivedThought: '',
+  },
+  {
+    id: 'iphone-14-pro',
+    name: 'iPhone 14 Pro',
+    brand: 'Apple',
+    status: '持有',
+    category: '手机',
+    purchasePrice: 8899,
+    purchaseDate: '2022-09-16',
+    channel: '',
+    warrantyEnd: '',
+    notes: '',
+    tags: '',
+    additional: 4240,
+    additionalDetail:
+      'AppleCare+: ¥848.00（2022–2025，每年续保）; AppleCare+: ¥848.00 (2026-09-17)',
+    archivedPrice: 0,
+    archivedDate: '',
+    archivedWay: '',
+    archivedThought: '',
+  },
+  {
+    id: 'dji-pocket-3',
+    name: 'Osmo Pocket 3',
+    brand: 'DJI',
+    status: '持有',
+    category: '相机',
+    purchasePrice: 1550,
+    purchaseDate: '2026-08-19',
+    channel: '',
+    warrantyEnd: '',
+    notes: '',
+    tags: '',
+    additional: 0,
+    additionalDetail: '',
+    archivedPrice: 0,
+    archivedDate: '',
+    archivedWay: '',
+    archivedThought: '',
+  },
+  {
+    id: 'dji-mini-5-pro',
+    name: 'DJI Mini 5 Pro',
+    brand: 'DJI',
+    status: '持有',
+    category: '无人机',
+    purchasePrice: 7688,
+    purchaseDate: '2025-09-18',
+    channel: '',
+    warrantyEnd: '',
+    notes: '',
+    tags: '',
+    additional: 0,
+    additionalDetail: '',
+    archivedPrice: 0,
+    archivedDate: '',
+    archivedWay: '',
+    archivedThought: '',
+  },
+  {
+    id: 'macbook-pro-proledxdr-14',
+    name: '14 英寸 MacBook Pro（PROLED XDR 显示屏）',
+    brand: 'Apple',
+    status: '持有',
+    category: '电脑',
+    purchasePrice: 20299,
+    purchaseDate: '2026-11-09',
+    channel: '',
+    warrantyEnd: '',
+    notes: '',
+    tags: '',
+    additional: 0,
+    additionalDetail: '',
+    archivedPrice: 0,
+    archivedDate: '',
+    archivedWay: '',
+    archivedThought: '',
+  },
+];
+const SNAPSHOT = '2026-11-19';
+const DAY = 86400000;
+const stamp = value => Date.parse(value + 'T00:00:00Z');
+const iso = value => new Date(value).toISOString().slice(0,10);
+const displayDate = value => value ? value.replaceAll('-', '.') : '日期待补充';
+const dateAt = value => displayDate(iso(value));
+const categories = {
+  '电脑': 'laptop',
+  '手机': 'phone',
+  '平板': 'tablet',
+  '穿戴': 'watch',
+  '影音': 'audio',
+  '相机': 'camera',
+  '无人机': 'drone',
+  '其他': 'layers'
+};
+const decimal = new Intl.NumberFormat('zh-CN', {minimumFractionDigits:2,maximumFractionDigits:2});
+const integer = new Intl.NumberFormat('zh-CN', {maximumFractionDigits:0});
+const money = value => (value < 0 ? '−' : '') + '¥' + decimal.format(Math.abs(value));
+const costLabel = value => value > 0 && value < .01 ? '< ¥0.01' : money(value);
+const columns = [
+  ['id','ID'], ['name','名称'], ['status','状态'], ['category','分类'], ['purchasePrice','持有价格'],
+  ['purchaseDate','持有日期'], ['channel','购买渠道'], ['warrantyEnd','保修截止'], ['notes','备注'], ['tags','标签'],
+  ['additional','追加投入总额'], ['additionalDetail','追加投入明细'], ['archivedPrice','归档价格'],
+  ['archivedDate','归档日期'], ['archivedWay','归档方式'], ['archivedThought','归档感想'], ['usageEnd','停用日期'],
+  ['targetDaily','个人日均目标'], ['photo','照片'], ['brand','品牌']
+];
+const amounts = ['purchasePrice','additional','archivedPrice'];
+const dateFields = ['purchaseDate','warrantyEnd','archivedDate','usageEnd'];
+
+const brandLabels={Apple:'Apple（苹果）',DJI:'DJI（大疆）'};
+function normalizeBrand(value='',name='') {
+  const brand=value.trim();
+  if (/^(?:apple|苹果|apple[（(]苹果[）)])$/i.test(brand)) return 'Apple';
+  if (/^(?:dji|大疆|dji[（(]大疆[）)])$/i.test(brand)) return 'DJI';
+  if (brand) return brand;
+  if (/^(?:apple\b|(?:\d+\s*英寸\s*)?macbook|imac|mac\s|iphone|ipad|airpods|homepod)/i.test(name.trim())) return 'Apple';
+  if (/^(?:dji\b|大疆|(?:osmo\s*)?pocket\s*3\b)/i.test(name.trim())) return 'DJI';
+  return '';
+}
+const brandKey=device=>(device.brand??'').toLocaleLowerCase('en-US');
+const brandLabel=brand=>Object.hasOwn(brandLabels,brand)?brandLabels[brand]:brand||'未填写品牌';
+const withBrand=device=>({...device,brand:normalizeBrand(device.brand,device.name)});
+
+// Upgrade the former array-based local archive once. The version is saved with
+// the records so a later deletion is not undone on refresh.
+const archiveVersion=2;
+const newPurchaseIds=['dji-pocket-3','dji-mini-5-pro','macbook-pro-proledxdr-14'];
+const compactModelName=name=>name.toLowerCase().replace(/[^a-z0-9]/g,'');
+function upgradeRecords(legacy) {
+  const records=legacy.map(withBrand);
+  const sold=initialDevices.find(device=>device.id==='macbook-air');
+  const soldIndex=records.findIndex(device=>device.id===sold.id);
+  if (soldIndex<0) records.push({...sold});
+  else {
+    const existing=records[soldIndex];
+    records[soldIndex]={...existing,name:sold.name,status:sold.status,archivedPrice:sold.archivedPrice,
+      archivedDate:sold.archivedDate,archivedWay:sold.archivedWay,
+      usageEnd:existing.usageEnd>sold.archivedDate?sold.archivedDate:existing.usageEnd};
+  }
+  for(const id of newPurchaseIds){
+    const purchase=initialDevices.find(device=>device.id===id);
+    const name=compactModelName(purchase.name);
+    const match=device=>{
+      const candidate=compactModelName(device.name);
+      return candidate===name ||
+        (id==='dji-pocket-3' && /^(?:dji)?(?:osmo)?pocket3$/.test(candidate)) ||
+        (id==='macbook-pro-proledxdr-14' && candidate==='macbookproproledxdr14inch');
+    };
+    const sameId=records.findIndex(device=>device.id===id);
+    const index=sameId>=0?sameId:records.findIndex(match);
+    if(index<0) records.push({...purchase});
+    else records[index]={...records[index],name:purchase.name,brand:purchase.brand,purchasePrice:purchase.purchasePrice,purchaseDate:purchase.purchaseDate};
+  }
+  return records;
+}
+function updateOfficialNames(records){
+  const names=new Map(initialDevices.filter(device=>device.id==='macbook-air'||newPurchaseIds.includes(device.id))
+    .map(device=>[device.id,device.name]));
+  return records.map(record=>{
+    let name=names.get(record.id);
+    if(!name && record.brand==='DJI' && record.purchaseDate==='2026-08-19' && /^(?:dji)?(?:osmo)?pocket3$/.test(compactModelName(record.name))){
+      name=names.get('dji-pocket-3');
+    }
+    if(!name && record.purchaseDate==='2026-11-09' && compactModelName(record.name)==='macbookproproledxdr14inch'){
+      name=names.get('macbook-pro-proledxdr-14');
+    }
+    return name?{...record,name}:record;
+  });
+}
+const encodeArchive=records=>JSON.stringify({version:archiveVersion,devices:records});
+
+function validDate(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(stamp(value)) &&
+    iso(stamp(value)) === value && value >= '1900-01-01' && value <= '2200-12-31';
+}
+
+function prepare(device) {
+  const start = stamp(device.purchaseDate);
+  const cutoff = stamp(device.usageEnd || (device.status === '归档' ? device.archivedDate : ''));
+  if (!Number.isFinite(start)) return null;
+  const events = [{date:start,amount:device.purchasePrice,name:'购入',kind:'purchase'}];
+  const notes = [];
+  const extras = [];
+  for (const item of device.additionalDetail.split(/[;；]/)) {
+    const amount = item.match(/[¥￥]\s*([\d,]+(?:\.\d+)?)/);
+    const parts = item.match(/(\d{4})[-/年](\d{1,2})[-/月](\d{1,2})/);
+    if (!amount || !parts) continue;
+    const [,year,month,day] = parts;
+    const date = stamp(year + '-' + month.padStart(2,'0') + '-' + day.padStart(2,'0'));
+    if (Number.isFinite(date)) extras.push({
+      date:Math.max(start,date), amount:Number(amount[1].replaceAll(',','')),
+      name:item.split(/[:：]/)[0].trim() || '追加投入', kind:'extra'
+    });
+  }
+  const listed = extras.reduce((sum,event) => sum + event.amount,0);
+  const remainder = Math.max(0,device.additional - listed);
+  if (remainder && /2022[–—-]2025[，,\s]*每年续保/.test(device.additionalDetail)) {
+    [2022,2023,2024,2025].forEach((year,index) => extras.push({
+      date:index ? Math.max(start,stamp(year + '-09-17')) : start,
+      amount:remainder/4, name:'AppleCare+（日期估算）', kind:'extra'
+    }));
+    notes.push('2022–2025 续保日期按周年估算');
+  } else if (remainder) {
+    extras.push({date:start,amount:remainder,name:'追加投入（日期待补充）',kind:'extra'});
+    notes.push(money(remainder) + ' 追加投入暂从购入日计入');
+  }
+  if (listed > device.additional) {
+    extras.forEach(event => event.amount *= device.additional/listed);
+    notes.push('追加明细按账本记录的合计金额折算');
+  }
+  events.push(...extras);
+  let pendingRecovery = false;
+  if (device.status === '归档' && device.archivedPrice) {
+    const date = stamp(device.archivedDate);
+    pendingRecovery = !Number.isFinite(date);
+    events.push({date:pendingRecovery ? cutoff : Math.max(start,date),amount:-device.archivedPrice,name:'归档回收',kind:'recovery'});
+    if (pendingRecovery) notes.push('回收日期待补充，暂计入停用日');
+    if (Number.isFinite(cutoff) && date > cutoff) notes.push('停用后的回收只抵扣成本，使用天数截止于停用日');
+  }
+  if (device.status === '归档' && !device.archivedDate && !device.usageEnd) notes.push('归档日期待补充，使用天数暂计至统计日');
+  return {start,cutoff,events,pendingRecovery,notes};
+}
+
+function evaluate(prepared,date) {
+  if (!prepared || date < prepared.start) return null;
+  const {start,cutoff} = prepared;
+  const last = Math.min(date,Number.isFinite(cutoff) ? Math.max(start,cutoff) : date);
+  const days = Math.max(1,Math.round((last - start)/DAY));
+  const total = prepared.events.reduce((sum,event) =>
+    sum + ((Number.isFinite(event.date) ? event.date : last) <= date ? event.amount : 0),0);
+  return {last,days,total,daily:total/days};
+}
+
+function blankDevice() {
+  const record = Object.fromEntries(columns.map(([key]) => [key,amounts.includes(key) ? 0 : '']));
+  return {...record,id:crypto.randomUUID(),status:'持有',category:'其他',purchaseDate:asOf};
+}
+function validate(device) {
+  if (!device.id || !device.name.trim()) return '请填写设备名称和有效 ID';
+  if (!['持有','归档'].includes(device.status) || !Object.hasOwn(categories,device.category)) return '状态或分类无效';
+  if (device.brand !== undefined && typeof device.brand !== 'string') return '品牌必须为文本';
+  if (amounts.some(key => !Number.isFinite(device[key]) || device[key] < 0)) return '金额必须大于或等于 0';
+  if (dateFields.some(key => device[key] && !validDate(device[key]))) return '请输入 1900–2200 年间的有效日期';
+  if (device.purchaseDate && [device.archivedDate,device.usageEnd].some(date => date && date < device.purchaseDate))
+    return '停用或回收日期不能早于购入日期';
+  if (device.targetDaily !== undefined && device.targetDaily !== '' && (!Number.isFinite(device.targetDaily) || device.targetDaily <= 0))
+    return '个人日均目标必须大于 0';
+  if (device.photo && !/^(https?:\/\/|data:image\/(png|jpeg|webp|gif);base64,)/.test(device.photo))
+    return '请填写有效的 HTTP(S) 图片链接';
+  return '';
+}
+
+function exportCsv(records) {
+  const row = values => values.map(value => '"' + String(value ?? '').replaceAll('"','""') + '"').join(',');
+  return '\uFEFF' + [row(columns.map(([,label]) => label)),...records.map(device => row(columns.map(([key]) => device[key])))].join('\r\n');
+}
+
+function importCsv(raw) {
+  const input = raw.replace(/^\uFEFF/,'');
+  const rows = [];
+  let values = [], cell = '', quoted = false;
+  for (let i=0; i<input.length; i++) {
+    const char = input[i];
+    if (char === '"' && quoted && input[i+1] === '"') {
+      cell += '"';
+      i++;
+    } else if (char === '"') {
+      quoted = !quoted;
+    } else if (!quoted && (char === ',' || char === '\r' || char === '\n')) {
+      values.push(cell);
+      cell = '';
+      if (char === ',') continue;
+      if (char === '\r' && input[i+1] === '\n') i++;
+      if (values.some(Boolean)) rows.push(values);
+      values = [];
+    } else cell += char;
+  }
+  if (quoted) throw Error('CSV 引号未闭合');
+  values.push(cell);
+  if (values.some(Boolean)) rows.push(values);
+  const headers = rows.shift() || [];
+  if (!headers.includes('名称') || !headers.includes('持有价格')) throw Error('缺少“名称”或“持有价格”列');
+  if (!rows.length) throw Error('文件中没有设备记录');
+  const ids = new Set();
+  return rows.map((row,index) => {
+    if (row.length !== headers.length) throw Error('第 ' + (index+2) + ' 行列数不匹配');
+    const device = {...blankDevice(),purchaseDate:''};
+    for (const [key,label] of columns) {
+      const position = headers.indexOf(label);
+      if (position < 0 || (key === 'id' && !row[position])) continue;
+      const value = row[position];
+      device[key] = amounts.includes(key) || (key === 'targetDaily' && value) ? Number(value) : value;
+    }
+    if (!headers.includes('分类')) {
+      const name = device.name.toLowerCase();
+      const guessed = [['mac','电脑'],['iphone','手机'],['ipad','平板'],['airpods|watch','穿戴'],['homepod|tv','影音'],['mini\\s*5\\s*pro','无人机'],['pocket\\s*3','相机']];
+      device.category = guessed.find(([pattern]) => new RegExp(pattern).test(name))?.[1] || '其他';
+    }
+    const error = validate(device) || (ids.has(device.id) ? 'ID 重复' : '');
+    if (error) throw Error('第 ' + (index+2) + ' 行 · ' + error);
+    ids.add(device.id);
+    return withBrand(device);
+  });
+}
+/*
+Glasswork rim lens by Kubai087 (lens.js, source blob 039bc5a713fa1eab1691679f422379a1694e47ec)
+https://github.com/kubai087/glasswork/blob/main/lens.js
+Adaptation: exports are exposed within an inline function for the offline HTML preview.
+
+MIT License
+
+Copyright (c) 2026 Kubai087
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+const glassLens = (() => {
+/*
+ * The rim lens of Lumno's liquid glass, as a standalone module.
+ *
+ *   import { liquidGlass } from './lens.js';
+ *   const lens = liquidGlass(element, { rim: 40, edge: 1.1, power: 2.6, dispersion: 0.15 });
+ *   lens.update({ rim: 32 });   // change any option later
+ *   lens.destroy();
+ *
+ * The wallpaper behind a surface's rim bends inward, the way the edge of a
+ * thick glass slab refracts, and splits slightly into its colors there. An
+ * SVG displacement map drives the bend through `backdrop-filter: url(#…)`,
+ * which only Chromium draws; everywhere else nothing happens and the
+ * CSS-only glass stays. The element must put `var(--glass-lens,)` last in
+ * its backdrop-filter:
+ *
+ *   backdrop-filter: blur(2px) saturate(180%) var(--glass-lens,);
+ *
+ * Ported from lumno-extension (src/domain/liquid-glass-lens.ts and
+ * src/newtab/dom/liquid-glass.ts). The map is a nine-slice lens: only the
+ * rim bends, and a rim depends on the corner's radius and shape and the
+ * rim's width alone, so a lens is four corner tiles and four one-pixel edge
+ * strips (stretched along the sides) over a flat middle. The tiles are built
+ * and decoded once per rim and shared by every surface; a surface that
+ * resizes only moves its tiles.
+ */
+
+const LENS_DEFAULTS = {
+  // The widest the rim gets, in CSS pixels. Small surfaces narrow it to a
+  // third and a half of their short side, so they keep a flat middle.
+  rim: 40,
+  // How far inward the very edge samples the scene, in rim widths.
+  edge: 1.1,
+  // How fast the bend falls off across the rim: (1 - d / rim) ^ power.
+  power: 2.6,
+  // Red bends this much further and blue this much less; 0 for one pass.
+  dispersion: 0.15,
+  // The corner's radius in pixels and its superellipse exponent (2 is a
+  // circle, 2^k is CSS superellipse(k)); read from the element when null.
+  radius: null,
+  corner: null,
+  // Turns the lens off without destroying it.
+  enabled: true,
+  // The custom property the filter goes in.
+  property: '--glass-lens',
+};
+
+// A circular corner's exponent (CSS corner-shape: round).
+const ROUND_CORNER = 2;
+
+// Too small a surface has no flat middle to look through.
+const LENS_MIN_PX = 32;
+
+// While the rim keeps changing (a slider being dragged, a window being
+// resized), the lens already there bends to the new width and the new
+// tiles are built once it has been still this long.
+const SETTLE_MS = 140;
+
+const SVG = 'http://www.w3.org/2000/svg';
+
+// Only Chromium draws url() in backdrop-filter. Firefox parses it and draws
+// nothing; Safari (and every browser on iOS) draws none of it either.
+function isLensSupported() {
+  if (typeof CSS === 'undefined' || !CSS.supports?.('backdrop-filter', 'url(#a)')) return false;
+  const ua = navigator.userAgent;
+  return /Chrome\//.test(ua) && !/Firefox\//.test(ua);
+}
+
+// The superellipse exponent of a computed CSS corner-shape. round is a
+// circle and squircle is superellipse(2); anything else reads as round.
+function cornerExponent(shape) {
+  const value = String(shape || '').trim();
+  if (value === 'squircle') return 4;
+  const match = /^superellipse\(\s*([^)\s]+)\s*\)$/.exec(value);
+  const k = match ? Number(match[1]) : Number.NaN;
+  return Number.isFinite(k) && k >= 0 ? 2 ** k : ROUND_CORNER;
+}
+
+// ---------- The map ----------
+
+// How much of the rim's bend a point keeps, `depth` of the way across it.
+function rimStrength(depth, power) {
+  return depth >= 1 ? 0 : (1 - Math.max(0, depth)) ** power;
+}
+
+// The rim's contours run from the outline (depth 0) to the rim's inner edge
+// (depth 1), each the outline inset by that share of the rim. A corner
+// tighter than the rim widens its inner contours toward one as wide as the
+// rim, so the bend turns the corner smoothly instead of snapping along the
+// diagonal (a seam the color split would light).
+function contourRadius(depth, radius, bezel) {
+  if (radius >= bezel) return radius - depth * bezel;
+  return (1 - depth) * (radius + (bezel - radius) * depth * (2 - depth));
+}
+
+function isWithinContour(x, y, depth, radius, bezel, corner) {
+  const inset = depth * bezel;
+  if (x < inset || y < inset) return false;
+  const curve = contourRadius(depth, radius, bezel);
+  const center = inset + curve;
+  if (x >= center || y >= center) return true;
+  return ((center - x) / curve) ** corner + ((center - y) / curve) ** corner <= 1;
+}
+
+// The inward bend at a point `x` and `y` from a corner's two edges.
+function bendNearCorner(x, y, radius, bezel, corner, power) {
+  if (isWithinContour(x, y, 1, radius, bezel, corner)) return [0, 0];
+  let depth = 0;
+  if (isWithinContour(x, y, 0, radius, bezel, corner)) {
+    // The contours are nested, so the depth a point lies at is found by halving.
+    let low = 0;
+    let high = 1;
+    // 14 halvings place a point within 1/16000 of the rim: finer than a pixel.
+    for (let step = 0; step < 14; step += 1) {
+      const middle = (low + high) / 2;
+      if (isWithinContour(x, y, middle, radius, bezel, corner)) low = middle;
+      else high = middle;
+    }
+    depth = low;
+  }
+  const strength = rimStrength(depth, power);
+  const curve = contourRadius(depth, radius, bezel);
+  const center = depth * bezel + curve;
+  if (x < center && y < center && curve > 0) {
+    // Across the corner's curve: along its normal.
+    const nx = Math.max(0, (center - x) / curve) ** (corner - 1);
+    const ny = Math.max(0, (center - y) / curve) ** (corner - 1);
+    const length = Math.hypot(nx, ny) || 1;
+    return [(nx / length) * strength, (ny / length) * strength];
+  }
+  return x < y ? [strength, 0] : [0, strength];
+}
+
+// Inward offset at a point: unit direction times strength (1 at the rim's
+// outer edge, 0 in the flat middle).
+function rimDisplacement(x, y, width, height, { bezel, radius, corner = ROUND_CORNER, power = LENS_DEFAULTS.power }) {
+  const rim = Math.min(bezel, height / 2, width / 2);
+  const r = Math.max(0, Math.min(radius, width / 2, height / 2));
+  const [inwardX, inwardY] = bendNearCorner(Math.min(x, width - x), Math.min(y, height - y), r, rim, corner, power);
+  if (inwardX === 0 && inwardY === 0) return [0, 0];
+  return [x < width / 2 ? inwardX : -inwardX, y < height / 2 ? inwardY : -inwardY];
+}
+
+// Where each tile sits on a surface of this size: corners (top left, top
+// right, bottom left, bottom right) then edges (top, bottom, left, right).
+function lensLayout(width, height, size) {
+  const across = Math.max(1, width - size * 2);
+  const down = Math.max(1, height - size * 2);
+  return [
+    [0, 0, size, size],
+    [width - size, 0, size, size],
+    [0, height - size, size, size],
+    [width - size, height - size, size, size],
+    [size, 0, across, size],
+    [size, height - size, across, size],
+    [0, size, size, down],
+    [width - size, size, size, down],
+  ];
+}
+
+// The tiles' pixels, read off a probe surface one pixel wider than two
+// tiles. Red is the sideways bend and green the vertical one, 128 none.
+function tilePixels(radius, bezel, corner, power) {
+  const size = Math.max(1, Math.ceil(Math.max(radius, bezel)));
+  const probe = size * 2 + 1;
+  const geometry = { bezel, radius, corner, power };
+  return {
+    size,
+    tiles: lensLayout(probe, probe, size).map(([left, top, w, h]) => {
+      const data = new Uint8ClampedArray(w * h * 4);
+      for (let y = 0; y < h; y += 1) {
+        for (let x = 0; x < w; x += 1) {
+          const [dx, dy] = rimDisplacement(left + x + 0.5, top + y + 0.5, probe, probe, geometry);
+          const i = (y * w + x) * 4;
+          data[i] = Math.round(128 + dx * 127);
+          data[i + 1] = Math.round(128 + dy * 127);
+          data[i + 2] = 128;
+          data[i + 3] = 255;
+        }
+      }
+      return { width: w, height: h, data };
+    }),
+  };
+}
+
+// Tiles for one rim, as decoded PNG data URLs: a filter whose images are
+// still decoding draws without its blur, so no surface points at one early.
+const tileCache = new Map();
+const TILE_CACHE_MAX = 48;
+
+function lensTiles(radius, bezel, corner, power) {
+  const key = `${radius}:${bezel}:${corner.toFixed(3)}:${power.toFixed(3)}`;
+  let entry = tileCache.get(key);
+  if (entry) {
+    // Most recently used last.
+    tileCache.delete(key);
+    tileCache.set(key, entry);
+    return entry;
+  }
+  const { size, tiles } = tilePixels(radius, bezel, corner, power);
+  // Encoded with toBlob, which compresses off the main thread, and kept as
+  // object URLs for as long as the page lives (a rim's tiles are small).
+  entry = Promise.all(tiles.map((tile) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = tile.width;
+    canvas.height = tile.height;
+    const context = canvas.getContext('2d');
+    const image = context.createImageData(tile.width, tile.height);
+    image.data.set(tile.data);
+    context.putImageData(image, 0, 0);
+    return new Promise((resolve) => canvas.toBlob(resolve, 'image/png')).then(async (blob) => {
+      const url = blob ? URL.createObjectURL(blob) : canvas.toDataURL('image/png');
+      const decoded = new Image();
+      decoded.src = url;
+      await decoded.decode().catch(() => {});
+      return url;
+    });
+  })).then((urls) => ({ size, urls }));
+  tileCache.set(key, entry);
+  while (tileCache.size > TILE_CACHE_MAX) tileCache.delete(tileCache.keys().next().value);
+  return entry;
+}
+
+// ---------- The filter ----------
+
+function node(tag, attrs, parent) {
+  const el = document.createElementNS(SVG, tag);
+  for (const [name, value] of Object.entries(attrs)) el.setAttribute(name, value);
+  parent?.append(el);
+  return el;
+}
+
+let filterCount = 0;
+
+// The lens tiles over a flat flood make the map; the backdrop is displaced
+// by it once, or once per color channel by its own share of the bend, the
+// three added back together (screen on single channels is a sum). Each
+// filter gets an <svg> of its own: adding one to an <svg> that holds others
+// can make Chrome reload all their images, and a backdrop naming a filter
+// whose images are reloading drops its blur.
+function buildFilter(width, height, tiles, split) {
+  const id = `liquid-glass-lens-${++filterCount}`;
+  const host = node('svg', {
+    'aria-hidden': 'true', width: 0, height: 0,
+    style: 'position:absolute;width:0;height:0;overflow:hidden;pointer-events:none',
+  });
+  const filter = node('filter', {
+    id, filterUnits: 'userSpaceOnUse', 'color-interpolation-filters': 'sRGB', x: 0, y: 0, width, height,
+  }, host);
+  node('feFlood', { 'flood-color': 'rgb(128,128,128)', result: 'flat' }, filter);
+  const rects = lensLayout(width, height, tiles.size);
+  const pieces = rects.map(([x, y, w, h], index) => node('feImage', {
+    href: tiles.urls[index], preserveAspectRatio: 'none', x, y, width: w, height: h, result: `t${index}`,
+  }, filter));
+  const merge = node('feMerge', { result: 'map' }, filter);
+  node('feMergeNode', { in: 'flat' }, merge);
+  rects.forEach((_, index) => node('feMergeNode', { in: `t${index}` }, merge));
+  const passes = [];
+  const pass = () => {
+    passes.push({
+      el: node('feDisplacementMap', { in: 'SourceGraphic', in2: 'map', xChannelSelector: 'R', yChannelSelector: 'G', scale: 0 }, filter),
+    });
+  };
+  if (split) {
+    ['r', 'g', 'b'].forEach((name, channel) => {
+      pass();
+      // Keeps this channel and alpha: a 1 on the 4x5 matrix's diagonal.
+      const keep = Array.from({ length: 20 }, (_, cell) => Number(cell === channel * 6 || cell === 18)).join(' ');
+      node('feColorMatrix', { type: 'matrix', values: keep, result: name }, filter);
+    });
+    node('feBlend', { in: 'r', in2: 'g', mode: 'screen' }, filter);
+    node('feBlend', { in2: 'b', mode: 'screen' }, filter);
+  } else {
+    pass();
+  }
+  document.body.append(host);
+  return { id, host, filter, pieces, passes, tiles };
+}
+
+function placeFilter(lens, width, height) {
+  lens.filter.setAttribute('width', width);
+  lens.filter.setAttribute('height', height);
+  lensLayout(width, height, lens.tiles.size).forEach(([x, y, w, h], index) => {
+    const piece = lens.pieces[index];
+    piece.setAttribute('x', x);
+    piece.setAttribute('y', y);
+    piece.setAttribute('width', w);
+    piece.setAttribute('height', h);
+  });
+}
+
+// ---------- A surface ----------
+
+/*
+ * Gives `el` a rim lens in its --glass-lens property and keeps it fitted as
+ * the element resizes. Returns { supported, bezel, update(options),
+ * refresh(), destroy() }.
+ */
+function liquidGlass(el, options = {}) {
+  let opts = { ...LENS_DEFAULTS, ...options };
+  const supported = isLensSupported();
+  let current = null; // { key, lens, width, height }
+  let token = 0;
+  let frame = 0;
+  let lastChange = 0;
+  let settle = 0;
+  let observer = null;
+  const api = {
+    supported,
+    bezel: 0,
+    update(next = {}) {
+      opts = { ...opts, ...next };
+      schedule();
+    },
+    refresh: () => schedule(),
+    destroy,
+  };
+  if (!supported) {
+    // Nothing to draw: every call is a no-op.
+    api.update = () => {};
+    api.refresh = () => {};
+    api.destroy = () => {};
+    return api;
+  }
+
+  function clear() {
+    token += 1;
+    el.style.removeProperty(opts.property);
+    current?.lens.host.remove();
+    current = null;
+  }
+
+  function setScale(lens, bezel) {
+    const scale = 2 * opts.edge * bezel;
+    const split = lens.passes.length > 1;
+    lens.passes.forEach((p, channel) => {
+      const share = split ? 1 + (1 - channel) * opts.dispersion : 1;
+      p.el.setAttribute('scale', (scale * share).toFixed(1));
+    });
+  }
+
+  async function fit() {
+    frame = 0;
+    const width = Math.round(el.offsetWidth);
+    const height = Math.round(el.offsetHeight);
+    if (!opts.enabled || width < LENS_MIN_PX || height < LENS_MIN_PX) {
+      clear();
+      return;
+    }
+    const style = getComputedStyle(el);
+    const cssRadius = Number.parseFloat(style.borderTopLeftRadius) || 0;
+    const radius = Math.round(Math.min(opts.radius ?? cssRadius, width / 2, height / 2));
+    const corner = opts.corner ?? cornerExponent(style.getPropertyValue('corner-top-left-shape'));
+    const bezel = Math.round(Math.max(4, Math.min(opts.rim, Math.min(width, height) / 3.5)));
+    const split = opts.dispersion > 0;
+    const key = `${radius}:${bezel}:${corner.toFixed(3)}:${opts.power.toFixed(3)}:${split}`;
+    api.bezel = bezel;
+    if (current?.key === key) {
+      if (current.width !== width || current.height !== height) {
+        placeFilter(current.lens, width, height);
+        current.width = width;
+        current.height = height;
+      }
+      setScale(current.lens, bezel);
+      return;
+    }
+    const now = performance.now();
+    const settling = current && now - lastChange < SETTLE_MS;
+    lastChange = now;
+    if (settling) {
+      if (current.width !== width || current.height !== height) {
+        placeFilter(current.lens, width, height);
+        current.width = width;
+        current.height = height;
+      }
+      setScale(current.lens, bezel);
+      clearTimeout(settle);
+      settle = setTimeout(schedule, SETTLE_MS);
+      return;
+    }
+    // New tiles can take a few frames; until then the lens in use covers
+    // the new size, so no part of the surface goes without it.
+    if (current && (current.width !== width || current.height !== height)) {
+      placeFilter(current.lens, width, height);
+      current.width = width;
+      current.height = height;
+      setScale(current.lens, bezel);
+    }
+    const mine = ++token;
+    const tiles = await lensTiles(radius, bezel, corner, opts.power);
+    if (mine !== token) return;
+    const lens = buildFilter(width, height, tiles, split);
+    setScale(lens, bezel);
+    const previous = current;
+    current = { key, lens, width, height };
+    el.style.setProperty(opts.property, `url(#${lens.id})`);
+    // Let the new filter draw before the old one goes.
+    if (previous) requestAnimationFrame(() => requestAnimationFrame(() => previous.lens.host.remove()));
+  }
+
+  function schedule() {
+    if (!frame) frame = requestAnimationFrame(fit);
+  }
+
+  observer = new ResizeObserver(schedule);
+  observer.observe(el);
+
+  function destroy() {
+    observer.disconnect();
+    cancelAnimationFrame(frame);
+    clearTimeout(settle);
+    clear();
+  }
+
+  schedule();
+  return api;
+}
+return liquidGlass;
+})();
+/* Phosphor Icons, duotone. https://github.com/phosphor-icons/core
+MIT License
+
+Copyright (c) 2023 Phosphor Icons
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+const deviceGlyphs = {
+  "camera": "<path d=\"M208,64H176L160,40H96L80,64H48A16,16,0,0,0,32,80V192a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V80A16,16,0,0,0,208,64ZM128,168a36,36,0,1,1,36-36A36,36,0,0,1,128,168Z\" opacity=\"0.2\"/><path d=\"M208,56H180.28L166.65,35.56A8,8,0,0,0,160,32H96a8,8,0,0,0-6.65,3.56L75.71,56H48A24,24,0,0,0,24,80V192a24,24,0,0,0,24,24H208a24,24,0,0,0,24-24V80A24,24,0,0,0,208,56Zm8,136a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V80a8,8,0,0,1,8-8H80a8,8,0,0,0,6.66-3.56L100.28,48h55.43l13.63,20.44A8,8,0,0,0,176,72h32a8,8,0,0,1,8,8ZM128,88a44,44,0,1,0,44,44A44.05,44.05,0,0,0,128,88Zm0,72a28,28,0,1,1,28-28A28,28,0,0,1,128,160Z\"/>",
+  "drone": "<path d=\"M112,76A36,36,0,1,1,76,40,36,36,0,0,1,112,76Zm68,36a36,36,0,1,0-36-36A36,36,0,0,0,180,112ZM76,144a36,36,0,1,0,36,36A36,36,0,0,0,76,144Zm104,0a36,36,0,1,0,36,36A36,36,0,0,0,180,144Z\" opacity=\"0.2\"/><path d=\"M189.66,66.34a8,8,0,0,0-11.32,0L148.69,96H107.31L77.66,66.34A8,8,0,0,0,66.34,77.66L96,107.31v41.38L66.34,178.34a8,8,0,0,0,11.32,11.32L107.31,160h41.38l29.65,29.66a8,8,0,0,0,11.32-11.32L160,148.69V107.31l29.66-29.65A8,8,0,0,0,189.66,66.34ZM112,112h32v32H112Zm26.51-50.67a44,44,0,1,1,56.16,56.16A7.86,7.86,0,0,1,192,118a8,8,0,0,1-2.67-15.54,28,28,0,1,0-35.74-35.74,8,8,0,1,1-15.08-5.34ZM224,180a44,44,0,0,1-85.49,14.67,8,8,0,0,1,15.08-5.34,28,28,0,1,0,35.74-35.74,8,8,0,0,1,5.34-15.08A44.07,44.07,0,0,1,224,180ZM117.49,194.67a44,44,0,1,1-56.16-56.16,8,8,0,0,1,5.34,15.08,28,28,0,1,0,35.74,35.74,8,8,0,0,1,15.08,5.34ZM32,76a44,44,0,0,1,85.49-14.67,8,8,0,1,1-15.08,5.34,28,28,0,1,0-35.74,35.74A8,8,0,0,1,64,118a7.86,7.86,0,0,1-2.67-.46A44.07,44.07,0,0,1,32,76Z\"/>",
+  "phone": "<path d=\"M192,56V200H64V56Z\" opacity=\"0.2\"/><path d=\"M176,16H80A24,24,0,0,0,56,40V216a24,24,0,0,0,24,24h96a24,24,0,0,0,24-24V40A24,24,0,0,0,176,16ZM72,64H184V192H72Zm8-32h96a8,8,0,0,1,8,8v8H72V40A8,8,0,0,1,80,32Zm96,192H80a8,8,0,0,1-8-8v-8H184v8A8,8,0,0,1,176,224Z\"/>",
+  "tablet": "<path d=\"M208,64V192H48V64Z\" opacity=\"0.2\"/><path d=\"M192,24H64A24,24,0,0,0,40,48V208a24,24,0,0,0,24,24H192a24,24,0,0,0,24-24V48A24,24,0,0,0,192,24ZM56,72H200V184H56Zm8-32H192a8,8,0,0,1,8,8v8H56V48A8,8,0,0,1,64,40ZM192,216H64a8,8,0,0,1-8-8v-8H200v8A8,8,0,0,1,192,216Z\"/>",
+  "laptop": "<path d=\"M216,72V176H40V72A16,16,0,0,1,56,56H200A16,16,0,0,1,216,72Z\" opacity=\"0.2\"/><path d=\"M232,168h-8V72a24,24,0,0,0-24-24H56A24,24,0,0,0,32,72v96H24a8,8,0,0,0-8,8v16a24,24,0,0,0,24,24H216a24,24,0,0,0,24-24V176A8,8,0,0,0,232,168ZM48,72a8,8,0,0,1,8-8H200a8,8,0,0,1,8,8v96H48ZM224,192a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8v-8H224ZM152,88a8,8,0,0,1-8,8H112a8,8,0,0,1,0-16h32A8,8,0,0,1,152,88Z\"/>",
+  "watch": "<path d=\"M200,128a72,72,0,1,1-72-72A72,72,0,0,1,200,128Z\" opacity=\"0.2\"/><path d=\"M208,128a79.94,79.94,0,0,0-32.7-64.47l-6.24-34.38A16,16,0,0,0,153.32,16H102.68A16,16,0,0,0,86.94,29.15L80.7,63.53a79.9,79.9,0,0,0,0,128.94l6.24,34.38A16,16,0,0,0,102.68,240h50.64a16,16,0,0,0,15.74-13.15l6.24-34.38A79.94,79.94,0,0,0,208,128ZM102.68,32h50.64l3.91,21.55a79.75,79.75,0,0,0-58.46,0ZM64,128a64,64,0,1,1,64,64A64.07,64.07,0,0,1,64,128Zm89.32,96H102.68l-3.91-21.55a79.75,79.75,0,0,0,58.46,0ZM120,128V88a8,8,0,0,1,16,0v32h32a8,8,0,0,1,0,16H128A8,8,0,0,1,120,128Z\"/>",
+  "earbuds": "<path d=\"M80,144v40a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V128H64A16,16,0,0,1,80,144Zm112-16a16,16,0,0,0-16,16v40a16,16,0,0,0,16,16h16a16,16,0,0,0,16-16V128Z\" opacity=\"0.2\"/><path d=\"M201.89,54.66A104.08,104.08,0,0,0,24,128v56a24,24,0,0,0,24,24H64a24,24,0,0,0,24-24V144a24,24,0,0,0-24-24H40.36A88,88,0,0,1,128,40h.67a87.71,87.71,0,0,1,87,80H192a24,24,0,0,0-24,24v40a24,24,0,0,0,24,24h16a24,24,0,0,0,24-24V128A103.41,103.41,0,0,0,201.89,54.66ZM64,136a8,8,0,0,1,8,8v40a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V136Zm152,48a8,8,0,0,1-8,8H192a8,8,0,0,1-8-8V144a8,8,0,0,1,8-8h24Z\"/>",
+  "audio": "<path d=\"M192,32H64a8,8,0,0,0-8,8V216a8,8,0,0,0,8,8H192a8,8,0,0,0,8-8V40A8,8,0,0,0,192,32ZM128,184a32,32,0,1,1,32-32A32,32,0,0,1,128,184Z\" opacity=\"0.2\"/><path d=\"M192,24H64A16,16,0,0,0,48,40V216a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V40A16,16,0,0,0,192,24Zm0,192H64V40H192ZM116,76a12,12,0,1,1,12,12A12,12,0,0,1,116,76Zm12,116a40,40,0,1,0-40-40A40,40,0,0,0,128,192Zm0-64a24,24,0,1,1-24,24A24,24,0,0,1,128,128Z\"/>",
+  "media": "<path d=\"M224,64V176a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V64A16,16,0,0,1,48,48H208A16,16,0,0,1,224,64Z\" opacity=\"0.2\"/><path d=\"M208,40H48A24,24,0,0,0,24,64V176a24,24,0,0,0,24,24H208a24,24,0,0,0,24-24V64A24,24,0,0,0,208,40Zm8,136a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V64a8,8,0,0,1,8-8H208a8,8,0,0,1,8,8Zm-48,48a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,224Z\"/>",
+  "generic": "<path d=\"M200,64V80H176a16,16,0,0,0-16,16v80H40a16,16,0,0,1-16-16V64A16,16,0,0,1,40,48H184A16,16,0,0,1,200,64Z\" opacity=\"0.2\"/><path d=\"M224,72H208V64a24,24,0,0,0-24-24H40A24,24,0,0,0,16,64v96a24,24,0,0,0,24,24H152v8a24,24,0,0,0,24,24h48a24,24,0,0,0,24-24V96A24,24,0,0,0,224,72ZM40,168a8,8,0,0,1-8-8V64a8,8,0,0,1,8-8H184a8,8,0,0,1,8,8v8H176a24,24,0,0,0-24,24v72Zm192,24a8,8,0,0,1-8,8H176a8,8,0,0,1-8-8V96a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8Zm-96,16a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h40A8,8,0,0,1,136,208Zm80-96a8,8,0,0,1-8,8H192a8,8,0,0,1,0-16h16A8,8,0,0,1,216,112Z\"/>"
+};
+let comparisonModel = null;
+
+function sampleSeries(from,to,models,read) {
+  if (from>to) return [];
+  const span=Math.round((to-from)/DAY);
+  const step=Math.max(1,Math.ceil(span/430));
+  const dates=new Set([from,to]);
+  for (let offset=0;offset<span;offset+=step) dates.add(from+offset*DAY);
+  const include=date=>{
+    if(date>=from && date<=to) dates.add(date);
+  };
+  for (const model of models) {
+    for (const offset of [-1,0,1,2,3,7,14,30]) include(model.start+offset*DAY);
+    for (const event of model.events) {
+      include(event.date-DAY);
+      include(event.date);
+    }
+  }
+  return [...dates].sort((a,b)=>a-b).map(date=>({date,value:read(date)}));
+}
+
+function overviewSeries() {
+  const end=stamp(asOf);
+  const eligible=catalog.filter(item=>item.point);
+  const earliest=eligible.reduce((date,item)=>Math.min(date,item.model.start),end);
+  const start=state.overviewRange==='all' ? earliest : end-Number(state.overviewRange)*DAY;
+  const portfolio=state.chartMode==='portfolio';
+  let series;
+  if (portfolio) {
+    const models=active.map(item=>item.model);
+    const first=models.reduce((date,model)=>Math.min(date,model.start),Infinity);
+    const from=Math.max(start,first);
+    const read=portfolioDailyAt;
+    series=[{device:{id:'portfolio',name:'在用组合'},from,to:end,read,archived:false,points:sampleSeries(from,end,models,read)}];
+  } else {
+    series=catalog.map(({device,model,point})=>{
+      const archived=device.status==='归档';
+      const last=point ? model.events.reduce((date,event)=>
+        event.kind==='recovery' && event.date<=end ? Math.max(date,event.date) : date,point.last) : -Infinity;
+      const from=point?Math.max(start,model.start):Infinity;
+      const read=date=>evaluate(model,date).daily;
+      return {device,point,read,archived,from,to:last,points:sampleSeries(from,last,model?[model]:[],read)};
+    });
+    series.sort((a,b)=>Number(a.archived)-Number(b.archived) || (b.point?.daily ?? -1)-(a.point?.daily ?? -1));
+  }
+  series.forEach((item,index)=>{
+    item.number=index+1;
+    item.base=item.points[0]?.value ?? 0;
+  });
+  return {start,end,series,portfolio,change:state.chartMetric==='change'};
+}
+
+function moneyChange(value) {
+  const magnitude=Math.abs(value);
+  if (magnitude<.0005) return '¥0.00';
+  return (value<0?'−':'+') + '¥' + (magnitude<.01 ? magnitude.toFixed(3) : decimal.format(magnitude));
+}
+
+function overviewChart() {
+  const {start,end,series,portfolio,change}=comparisonModel=overviewSeries();
+  if (!portfolio && !series.some(item=>item.device.id===state.compareDevice && item.points.length)) {
+    state.compareDevice=null;
+    state.focusOnly=false;
+  }
+  const count=series.filter(item=>item.points.length).length;
+  const context=portfolio ? active.length+' 台在用设备' :
+    count===series.length ? count+' 台设备' : count+' / '+series.length+' 台有区间记录';
+  const controls='<div class="comparison-toolbar"><div class="chart-context"><span class="comparison-count">'+context+
+    '</span><output aria-live="polite"></output></div><div class="chart-controls">'+
+    segment('图表时间范围','overviewRange',[['30','近 30 天'],['365','近一年'],['all','全部历史']],state.overviewRange)+
+    segment('纵轴显示','chartMetric',[['amount','实际成本'],['change','较期初变化']],state.chartMetric)+'</div></div>';
+  const legend=series.map(item=>{
+    const {device,archived,points}=item;
+    const visible=points.length>0;
+    const attributes=portfolio?'':' data-series="'+esc(device.id)+'" aria-pressed="'+(device.id===state.compareDevice)+
+      '" title="'+esc(device.name+'，点按高亮曲线')+'"';
+    const tag=portfolio?'div':'button';
+    return '<'+tag+' class="series-item'+(portfolio?' portfolio-series':'')+(archived?' archived-series':'')+'"'+
+      attributes+(visible?'':' hidden')+'><span class="series-name" translate="no">'+esc(device.name)+
+      '</span><span class="series-readout"><span class="series-value"></span>'+
+      (archived?'<span class="series-archived">归档</span>':'')+'</span></'+tag+'>';
+  }).join('');
+
+  const compactTools=count?'<div class="compact-chart-tools">'+(portfolio?'':
+    '<label>查看设备<select class="field-control compact-series-select" aria-label="高亮一台设备">'+
+    optionSet([['','全部曲线'],...series.filter(item=>item.points.length).map(item=>[
+      item.device.id,item.device.name+(item.archived?' · 归档':'')
+    ])],state.compareDevice??'')+'</select></label>')+
+    '<output class="compact-readout" aria-live="polite"></output></div>':'';
+
+  return '<div class="device-comparison">'+controls+
+    (count?'<figure class="comparison-figure"><div class="comparison-stage" style="--curves:'+count+'">'+
+      '<canvas class="comparison-canvas" tabindex="0" aria-label="日均成本走势，方向键可逐日查看，Shift 加方向键可按周查看" aria-describedby="comparison-caption"></canvas>'+
+      '<div class="series-list"'+(portfolio?'':' role="group" aria-label="设备曲线和读数"')+'>'+legend+'</div></div>'+
+      '<figcaption class="plot-footer" id="comparison-caption"><span>'+dateAt(start)+'</span><span class="axis-unit"></span><span>'+
+      dateAt(end)+'</span></figcaption></figure>':'<p class="empty">这个区间没有可绘制的记录</p>')+
+    compactTools+(portfolio?'':'<div class="series-actions" hidden><button class="quiet series-zoom" aria-pressed="false">只看这台</button>'+
+      '<button class="quiet series-reset">取消高亮</button></div>')+'</div>';
+}
+
+function comparisonScale(series,change) {
+  const plotted=(item,value)=>change?value-item.base:value;
+  let low=change?0:Infinity,high=change?0:-Infinity,typical=0;
+  const nonzero=[];
+  for (const item of series) {
+    if (!item.points.length) continue;
+    const last=Math.abs(plotted(item,item.points.at(-1).value));
+    typical=Math.max(typical,last);
+    if(last>=.0001) nonzero.push(last);
+    for (const point of item.points) {
+      const value=plotted(item,point.value);
+      low=Math.min(low,value);
+      high=Math.max(high,value);
+    }
+  }
+
+  const peak=Math.max(Math.abs(low),Math.abs(high));
+  if (peak>=100 && (peak>12*Math.max(typical,1) || high-low>1000)) {
+    // Keep ordinary movements readable even if a newly purchased device is
+    // shedding thousands per day as its first few days are amortized.
+    nonzero.sort((a,b)=>a-b);
+    const middle=nonzero[Math.floor(nonzero.length/2)] ?? .5;
+    const knee=change?Math.max(.0001,Math.min(.5,middle/24)):.5;
+    const project=value=>Math.asinh(value/knee);
+    const min=project(low),max=project(high);
+    const margin=(max-min)*.055;
+    const ticks=[0];
+    const firstTick=change ? 10**Math.floor(Math.log10(knee)) : .1;
+    for (let value=firstTick;value<Math.max(10,peak*10) && Number.isFinite(value);value*=10) {
+      if(value<=high) ticks.push(value);
+      if(-value>=low) ticks.push(-value);
+    }
+    return {project,min:min-margin,max:max+margin,ticks:ticks.sort((a,b)=>b-a),decimals:change?Math.max(1,Math.round(-Math.log10(firstTick))):1,compressed:true};
+  }
+
+  const realSpan=high-low;
+  const epsilon=Math.max(Math.abs(high)*.025,.001);
+  if (realSpan<=epsilon*1e-5) {
+    low=change?-epsilon:Math.max(0,low-epsilon);
+    high+=epsilon;
+  }
+  const rawStep=(high-low)/4;
+  const unit=10**Math.floor(Math.log10(rawStep));
+  const step=unit*([1,2,2.5,5,10].find(value=>value>=rawStep/unit) ?? 10);
+  const first=Math.floor(low/step+1e-9),last=Math.ceil(high/step-1e-9);
+  const decimals=Math.max(0,Math.min(6,Math.ceil(-Math.log10(step))+(Math.abs(step/unit-2.5)<1e-9?1:0)));
+  const ticks=Array.from({length:last-first+1},(_,index)=>(last-index)*step);
+  return {project:value=>value,min:(first-.12)*step,max:(last+.12)*step,ticks,decimals,compressed:false};
+}
+
+function chartTicks(start,end,width) {
+  const target=width<495?4:7;
+  const days=Math.round((end-start)/DAY);
+  const ticks=[];
+  if(days>730){
+    const firstYear=new Date(start).getUTCFullYear(),lastYear=new Date(end).getUTCFullYear();
+    const step=Math.max(1,Math.ceil((lastYear-firstYear)/target));
+    for(let year=firstYear+step;year<=lastYear;year+=step) ticks.push({date:Date.UTC(year,0,1),label:String(year)});
+  } else if(days>7) {
+    for(let index=1;index<target;index++){
+      const date=start+Math.round(days*index/target)*DAY;
+      ticks.push({date,label:dateAt(date).slice(5)});
+    }
+  }
+  return ticks;
+}
+
+function spaceChartLabels(labels,top,bottom,gap) {
+  labels.sort((a,b)=>a.anchorY-b.anchorY || a.item.number-b.item.number);
+  let next=top+gap/2;
+  for (const label of labels) {
+    label.y=Math.max(label.anchorY,next);
+    next=label.y+gap;
+  }
+  next=bottom-gap/2;
+  for(let i=labels.length-1;i>=0;i--){
+    labels[i].y=Math.min(labels[i].y,next);
+    next=labels[i].y-gap;
+  }
+  return labels;
+}
+
+function mountComparison() {
+  const figure=main.querySelector('.device-comparison');
+  const canvas=figure?.querySelector('canvas');
+  if(!canvas || !comparisonModel) return;
+  const {start,end,series,portfolio,change}=comparisonModel;
+  const ctx=canvas.getContext('2d');
+  const output=figure.querySelector('.chart-context output'),axisUnit=figure.querySelector('.axis-unit');
+  const compactReadout=figure.querySelector('.compact-readout'),compactSelect=figure.querySelector('.compact-series-select');
+  const context=figure.querySelector('.chart-context');
+  const rail=figure.querySelector('.series-list'),actions=figure.querySelector('.series-actions');
+  const reset=figure.querySelector('.series-reset'),zoom=figure.querySelector('.series-zoom');
+  const rows=[...rail.children],valueLabels=rows.map(row=>row.querySelector('.series-value'));
+  const rowByItem=new Map(series.map((item,index)=>[item,rows[index]]));
+  const plotted=(item,value)=>change?value-item.base:value;
+  const display=value=>change?moneyChange(value):costLabel(value);
+  const showId=()=>portfolio?null:(state.focusOnly?state.compareDevice:(hovered||state.compareDevice));
+  const seriesById=id=>series.find(item=>item.device.id===id);
+  const scaleForView=()=>comparisonScale(!portfolio && state.focusOnly && state.compareDevice ?
+    series.filter(item=>item.device.id===state.compareDevice):series,change);
+  let pointerDate=null,hovered=null,chartHover=false,layout,frame=0,scale=scaleForView();
+
+  function pointValue(item,date) {
+    return date>=item.from && date<=item.to ? item.read(date) : undefined;
+  }
+
+  function renderedY(item,date,y) {
+    const points=item.points;
+    if(!points.length || date<points[0].date || date>points.at(-1).date) return undefined;
+    let low=0,high=points.length-1;
+    while(high-low>1){
+      const middle=Math.floor((low+high)/2);
+      if(points[middle].date>date) high=middle;
+      else low=middle;
+    }
+    const from=points[low],to=points[high];
+    const first=y(plotted(item,from.value));
+    if(from.date===to.date) return first;
+    return first+(y(plotted(item,to.value))-first)*(date-from.date)/(to.date-from.date);
+  }
+
+  function updateLabels() {
+    const activeId=showId();
+    const chosen=seriesById(activeId) || (portfolio?series[0]:null);
+    const selectedValue=chosen && pointerDate!==null ? pointValue(chosen,pointerDate) : undefined;
+    if(actions) actions.hidden=!state.compareDevice;
+    if(zoom){
+      zoom.hidden=!state.compareDevice;
+      zoom.setAttribute('aria-pressed',String(state.focusOnly));
+      zoom.textContent=state.focusOnly?'恢复全部曲线':'只看这台';
+    }
+    context.toggleAttribute('data-inspecting',Boolean(activeId)||pointerDate!==null);
+    const lastLabel=change?'较期初变化':'区间末值';
+    axisUnit.textContent=(scale.compressed?'压缩刻度':'线性刻度')+' · '+(change?'较期初变化，':'')+'元 / 天';
+    output.textContent=pointerDate===null ? (activeId?chosen.device.name+(state.focusOnly?' · 仅显示这台':' · '+lastLabel):lastLabel) :
+      dateAt(pointerDate)+(selectedValue===undefined ? (change?' · 较期初变化':' · 日均成本') :
+        ' · '+chosen.device.name+' '+display(plotted(chosen,selectedValue))+' / 天');
+    output.title=output.textContent;
+    if(compactSelect) compactSelect.value=state.compareDevice??'';
+    if(pointerDate!==null) compactReadout.textContent=output.textContent;
+    else if(chosen?.points.length) compactReadout.textContent=chosen.device.name+' · '+
+      display(plotted(chosen,chosen.points.at(-1).value))+' / 天'+(chosen.archived?' · 归档':'');
+    else compactReadout.textContent='点按曲线或选择设备，查看读数';
+    for(let i=0;i<rows.length;i++){
+      const row=rows[i],item=series[i];
+      if(!portfolio){
+        row.setAttribute('aria-pressed',String(item.device.id===state.compareDevice));
+        row.toggleAttribute('data-highlighted',item.device.id===activeId);
+      }
+      row.hidden=!item.points.length || (!portfolio && state.focusOnly && item.device.id!==state.compareDevice);
+      const value=pointerDate===null?item.points.at(-1)?.value:pointValue(item,pointerDate);
+      const text=value===undefined?'—':display(plotted(item,value));
+      valueLabels[i].textContent=text;
+      if(!portfolio) row.setAttribute('aria-label',item.device.name+(item.archived?'，归档':'')+'，'+
+        (value===undefined?'当日无记录':text+' / 天')+'，点按高亮曲线');
+    }
+  }
+
+  function draw() {
+    frame=0;
+    const {width,height}=canvas.getBoundingClientRect();
+    if(!width || !height) return;
+    const dpr=Math.min(devicePixelRatio||1,3);
+    const pixelWidth=Math.round(width*dpr),pixelHeight=Math.round(height*dpr);
+    if(canvas.width!==pixelWidth || canvas.height!==pixelHeight){
+      canvas.width=pixelWidth;canvas.height=pixelHeight;
+    }
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,width,height);
+    const styles=getComputedStyle(document.documentElement);
+    const tone=name=>styles.getPropertyValue(name).trim();
+    const compact=width<620;
+    const left=compact?39:52,right=compact?width-9:width-rail.clientWidth-12;
+    const top=13,bottom=height-25,duration=Math.max(DAY,end-start);
+    const x=date=>left+(date-start)/duration*(right-left);
+    const y=value=>bottom-(scale.project(value)-scale.min)/(scale.max-scale.min)*(bottom-top);
+    layout={left,right,top,bottom,x,y,labels:[]};
+    ctx.font='11px -apple-system, sans-serif';
+    ctx.textBaseline='middle';ctx.textAlign='right';
+    let lastTick=-Infinity;
+    for(const value of scale.ticks){
+      const py=y(value);
+      if(py-lastTick<18 && value!==0) continue;
+      if(scale.compressed && value!==0 && Math.abs(py-y(0))<18) continue;
+      lastTick=py;
+      ctx.strokeStyle=tone('--grid');ctx.lineWidth=1;
+      ctx.setLineDash(value===0?[]:[2,4]);
+      ctx.beginPath();ctx.moveTo(left,py);ctx.lineTo(right,py);ctx.stroke();
+      ctx.fillStyle=tone('--muted');
+      const absolute=Math.abs(value);
+      const label=absolute>=1000 ? Number((value/1000).toPrecision(3))+'k' :
+        (value>0&&change?'+':'')+(Object.is(value,-0)?0:value).toFixed(scale.decimals).replace(/(\.\d*?)0+$/,'$1').replace(/\.$/,'');
+      ctx.fillText(label,left-7,py);
+    }
+
+    ctx.strokeStyle=tone('--grid');ctx.fillStyle=tone('--muted');
+    ctx.setLineDash([2,5]);ctx.textAlign='center';
+    for(const {date,label} of chartTicks(start,end,right-left)){
+      const px=x(date);
+      if(px<left+12 || px>right-12) continue;
+      ctx.beginPath();ctx.moveTo(px,top);ctx.lineTo(px,bottom);ctx.stroke();
+      ctx.fillText(label,px,height-8);
+    }
+    ctx.setLineDash([]);
+
+    const focused=showId();
+    const visible=series.filter(item=>item.points.length && (portfolio||!state.focusOnly||item.device.id===state.compareDevice));
+    const lineTone=item=>tone(portfolio||item.device.id===focused?'--cost-color':item.archived?'--series-archived':'--series');
+    const alpha=item=>portfolio||item.device.id===focused?1:focused?.29:item.archived?.74:.88;
+    const drawLine=item=>{
+      const selected=portfolio||item.device.id===focused;
+      ctx.strokeStyle=lineTone(item);ctx.fillStyle=ctx.strokeStyle;
+      ctx.globalAlpha=alpha(item);ctx.lineWidth=selected?2.65:1.45;
+      ctx.lineJoin='round';ctx.lineCap='round';
+      ctx.setLineDash(item.archived?[5,4]:[]);
+      ctx.beginPath();
+      item.points.forEach(({date,value},index)=>{
+        const px=x(date),py=y(plotted(item,value));
+        if(index) ctx.lineTo(px,py);
+        else ctx.moveTo(px,py);
+      });
+      ctx.stroke();ctx.setLineDash([]);
+      const point=item.points.at(-1);
+      ctx.beginPath();ctx.arc(x(point.date),y(plotted(item,point.value)),selected?3.4:2.2,0,2*Math.PI);ctx.fill();
+      ctx.globalAlpha=1;
+    };
+
+    if(pointerDate!==null && chartHover){
+      const px=x(pointerDate);
+      ctx.strokeStyle=tone('--muted');ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(px,top);ctx.lineTo(px,bottom);ctx.stroke();
+    }
+    visible.filter(item=>item.device.id!==focused).forEach(drawLine);
+    const chosen=visible.find(item=>item.device.id===focused) || (portfolio?visible[0]:null);
+    if(chosen){
+      if(!portfolio) drawLine(chosen);
+      const value=pointerDate!==null?pointValue(chosen,pointerDate):undefined;
+      if(value!==undefined && chartHover){
+        ctx.fillStyle=tone('--cost-color');
+        ctx.beginPath();ctx.arc(x(pointerDate),renderedY(chosen,pointerDate,y),4.2,0,2*Math.PI);ctx.fill();
+      }
+    }
+
+    if(compact) return;
+    const labelGap=23;
+    layout.labels=spaceChartLabels(visible.map(item=>{
+      const endPoint=item.points.at(-1);
+      return {item,anchorX:x(endPoint.date),anchorY:y(plotted(item,endPoint.value))};
+    }),top,bottom,labelGap);
+    for(const {item,anchorX,anchorY,y:labelY} of layout.labels){
+      const selected=portfolio||item.device.id===focused;
+      const row=rowByItem.get(item);
+      row.style.setProperty('--label-y',labelY+'px');
+      row.style.setProperty('--series-opacity',selected?1:focused?.63:1);
+      const targetX=right+11;
+      ctx.strokeStyle=lineTone(item);
+      ctx.globalAlpha=selected?.8:focused?.24:.50;
+      ctx.lineWidth=1;
+      if(item.archived) ctx.setLineDash([2,4]);
+      ctx.beginPath();ctx.moveTo(anchorX+3,anchorY);
+      ctx.lineTo(right+3,anchorY);ctx.lineTo(targetX,labelY);ctx.stroke();ctx.setLineDash([]);
+    }
+    ctx.globalAlpha=1;
+  }
+
+  const invalidate=()=>{
+    if(!frame) frame=requestAnimationFrame(draw);
+  };
+  function inspect(event) {
+    if(!layout || (event.pointerType==='touch' && event.type==='pointermove' && !event.buttons)) return;
+    const rect=canvas.getBoundingClientRect();
+    const px=event.clientX-rect.left,py=event.clientY-rect.top;
+    if(px>layout.right+3){
+      const label=layout.labels.find(label=>Math.abs(label.y-py)<8.5);
+      hovered=label?.item.device.id??null;
+      pointerDate=label?.item.to??null;
+      chartHover=false;
+    } else {
+      const portion=(px-layout.left)/(layout.right-layout.left);
+      const days=Math.round((end-start)/DAY);
+      pointerDate=start+Math.min(days,Math.max(0,Math.round(portion*days)))*DAY;
+      chartHover=true;
+      hovered=null;
+      if(!portfolio && !state.focusOnly){
+        let distance=event.pointerType==='touch'?24:17;
+        const moment=start+Math.max(0,Math.min(1,portion))*(end-start);
+        for(const item of series){
+          const curve=renderedY(item,moment,layout.y);
+          if(curve===undefined) continue;
+          const offset=Math.abs(py-curve);
+          if(offset<distance){distance=offset;hovered=item.device.id}
+        }
+      }
+    }
+    updateLabels();invalidate();
+  }
+  const clear=()=>{
+    pointerDate=null;hovered=null;chartHover=false;
+    updateLabels();invalidate();
+  };
+  canvas.addEventListener('pointermove',inspect);
+  canvas.addEventListener('pointerdown',inspect);
+  canvas.addEventListener('pointerleave',event=>{if(event.pointerType!=='touch') clear()});
+  canvas.addEventListener('pointercancel',clear);
+  canvas.addEventListener('blur',clear);
+  canvas.addEventListener('focus',()=>{
+    if(pointerDate===null){pointerDate=end;chartHover=true;updateLabels();invalidate()}
+  });
+  canvas.addEventListener('keydown',event=>{
+    const date=pointerDate??end;
+    const jump=(event.shiftKey?7:1)*DAY;
+    const moves={Home:start,End:end,ArrowLeft:date-jump,ArrowRight:date+jump};
+    if(!Object.hasOwn(moves,event.key)) return;
+    event.preventDefault();
+    pointerDate=Math.min(end,Math.max(start,moves[event.key]));
+    hovered=null;chartHover=true;updateLabels();invalidate();
+  });
+  if(!portfolio){
+    compactSelect.addEventListener('change',()=>{
+      state.compareDevice=compactSelect.value||null;
+      if(!state.compareDevice) state.focusOnly=false;
+      scale=scaleForView();
+      clear();
+    });
+    for(const row of rows){
+      if(!seriesById(row.dataset.series)?.points.length) continue;
+      row.addEventListener('pointerenter',()=>{
+        if(state.focusOnly) return;
+        hovered=row.dataset.series;updateLabels();invalidate();
+      });
+      row.addEventListener('pointerleave',()=>{
+        if(hovered===row.dataset.series){hovered=null;updateLabels();invalidate()}
+      });
+    }
+    figure.addEventListener('click',event=>{
+      const button=event.target.closest('button');
+      if(!button || (!button.dataset.series && button!==reset && button!==zoom)) return;
+      if(button===zoom) state.focusOnly=!state.focusOnly;
+      else {
+        const id=button.dataset.series;
+        state.compareDevice=id && id!==state.compareDevice?id:null;
+        if(!state.compareDevice) state.focusOnly=false;
+      }
+      hovered=null;pointerDate=null;chartHover=false;
+      if(button===reset) rows.find(item=>!item.hidden)?.focus({preventScroll:true});
+      scale=scaleForView();updateLabels();invalidate();
+    });
+  }
+  const observer=new ResizeObserver(invalidate);
+  observer.observe(canvas);
+  plotCleanups.push(()=>{observer.disconnect();cancelAnimationFrame(frame)});
+  updateLabels();
+  draw();
+}
+const icons = {
+  overview:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  layers:'<path d="m3 7.5 9-5 9 5-9 5-9-5Zm0 5 9 5 9-5m-18 5 9 5 9-5"/>',
+  stats:'<path d="M4 20h16M6 16v-5m6 5V5m6 11V8"/>',
+  settings:'<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2.5" fill="var(--surface)"/><circle cx="15" cy="17" r="2.5" fill="var(--surface)"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  close:'<path d="m6 6 12 12M18 6 6 18"/>',
+  calendar:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 10h18m-13 4h2m4 0h2m-8 3h2"/>',
+  wallet:'<rect x="3" y="5" width="17" height="15" rx="3"/><path d="M18 10h3v5h-3a2.5 2.5 0 0 1 0-5Z" fill="var(--wash)"/>',
+  ring:'<path d="M11 3a9 9 0 1 0 10 10H11V3Z"/><path d="M14 3v7h7a8.2 8.2 0 0 0-7-7Z"/>',
+  rank:'<path d="M4 6h16M4 12h12M4 18h7"/>',
+  laptop:'<rect x="5" y="4" width="14" height="12" rx="1.7"/><path d="m5 16-2 3h18l-2-3"/>',
+  phone:'<rect x="6" y="2.7" width="12" height="18.6" rx="3"/><path d="M10 5.5h4m-3 12.8h2"/>',
+  tablet:'<rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M11 18h2"/>',
+  watch:'<rect x="6" y="7" width="12" height="10" rx="3"/><path d="m8 7 1-4h6l1 4m-8 10 1 4h6l1-4m-4-7v2l2 1"/>',
+  audio:'<rect x="5" y="3" width="14" height="18" rx="3"/><circle cx="12" cy="14" r="3.3"/><path d="M12 7h.01"/>',
+  earbuds:'<path d="M9 4.5a3.4 3.4 0 0 0-6.8 0v3.2a3 3 0 0 0 3 3h1V17a1.6 1.6 0 0 0 3.2 0V5.4M15 4.5a3.4 3.4 0 0 1 6.8 0v3.2a3 3 0 0 1-3 3h-1V17a1.6 1.6 0 0 1-3.2 0V5.4"/>',
+  media:'<rect x="3" y="7" width="18" height="10" rx="3"/><path d="M16.5 13h.01"/>',
+  speaker:'<rect x="5" y="3" width="14" height="18" rx="7"/><path d="M9 9h6m-6 3h6m-6 3h6"/>',
+  search:'<circle cx="10.5" cy="10.5" r="5.8"/><path d="m15 15 4.5 4.5"/>',
+};
+const icon = name => '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">' + icons[name] + '</svg>';
+const esc = value => String(value ?? '').replace(/[&<>"']/g,char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+const main = document.querySelector('main');
+const detailDialog = document.querySelector('#detail');
+const topBar = document.querySelector('.top');
+const navigation = document.querySelector('.navigation');
+const panel = document.querySelector('#panel');
+const notice = document.querySelector('#notice');
+const STORAGE = 'kept-html-preview-records-v1';
+const THEME = 'kept-html-preview-theme-v1';
+const viewNames = {overview:'设备摘要',devices:'设备清单'};
+const viewFromURL = () => Object.hasOwn(viewNames,location.hash.slice(1)) ? location.hash.slice(1) : 'overview';
+const state = {view:viewFromURL(),chartMode:'devices',overviewRange:'all',chartMetric:'amount',compareDevice:null,focusOnly:false,rank:'daily',mode:'list',status:'全部',category:'全部',brand:'*',breakdown:'brand',sort:'date',query:'',detailId:null,detailRange:'year'};
+const plots = new Map();
+let plotCleanups = [];
+let previous = null;
+let noticeTimer;
+let asOf = SNAPSHOT;
+let devices = structuredClone(initialDevices);
+let storedReadError = false;
+let storedUpgradeError = false;
+try {
+  const saved = localStorage.getItem(STORAGE) ??
+    localStorage.getItem('wuji-score-devices-v1') ??
+    localStorage.getItem('wuji-devices-v1');
+  if (saved) {
+    const parsed=JSON.parse(saved);
+    const legacy=Array.isArray(parsed);
+    const version=legacy?0:parsed?.version;
+    const records=legacy?parsed:[1,archiveVersion].includes(version)?parsed.devices:null;
+    if (!Array.isArray(records) || records.some(record=>!record || validate(record)) ||
+        new Set(records.map(record=>record.id)).size!==records.length) throw Error('Invalid saved data');
+    devices=legacy?upgradeRecords(records):records.map(withBrand);
+    if(version!==archiveVersion){
+      devices=updateOfficialNames(devices);
+      try {localStorage.setItem(STORAGE,encodeArchive(devices))}
+      catch {storedUpgradeError=true}
+    }
+  }
+  const theme=localStorage.getItem(THEME)??localStorage.getItem('kept-theme-v1');
+  if (theme==='light') document.documentElement.dataset.theme='light';
+} catch {
+  storedReadError = true;
+}
+
+let catalog = [];
+let active = [];
+let total = 0;
+let daily = 0;
+let archived = 0;
+
+function refresh() {
+  const date = stamp(asOf);
+  catalog = devices.map(device => {
+    const model = prepare(device);
+    return {device,model,point:evaluate(model,date)};
+  });
+  active = catalog.filter(({device,point,model}) =>
+    device.status === '持有' && point && (!Number.isFinite(model.cutoff) || model.cutoff >= date));
+  total = active.reduce((sum,item) => sum + item.point.total,0);
+  daily = active.reduce((sum,item) => sum + item.point.daily,0);
+  archived = devices.filter(device => device.status === '归档').length;
+  if(state.brand!=='*' && !devices.some(device=>brandKey(device)===state.brand)) state.brand='*';
+}
+
+function deviceSymbol(device) {
+  const name = device.name.toLowerCase();
+  if (/airpods|headphones/.test(name)) return 'earbuds';
+  if (name.includes('apple tv')) return 'media';
+  return categories[device.category];
+}
+function deviceArt(device) {
+  const shape = deviceGlyphs[deviceSymbol(device)] || deviceGlyphs.generic;
+  return '<svg class="device-glyph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">' + shape + '</svg>';
+}
+function deviceIcon(device) {
+  return '<span class="rank-icon" aria-hidden="true">' + deviceArt(device) + '</span>';
+}
+function segment(label,action,options,current) {
+  return '<div class="segment" role="group" aria-label="' + label + '">' +
+    options.map(([value,title]) => '<button type="button" data-action="' + action + '" data-value="' + value + '" aria-pressed="' + (value === current) + '">' + title + '</button>').join('') + '</div>';
+}
+const heading = (title,description) => '<header class="page-heading"><div><h1>' + title + '</h1>' + (description ? '<p>' + description + '</p>' : '') +
+  '</div><button class="date-chip glass" data-command="settings" aria-label="设置统计截止日 ' + asOf + '">' + icon('calendar') +
+  '<span><span class="date-prefix">截至 </span>' + displayDate(asOf) + '</span></button></header>';
+const trackLabel = (point,annual) => {
+  if (!point) return '—';
+  return costLabel(point.daily * (annual ? 365 : 1));
+};
+
+function portfolioDailyAt(date) {
+  return active.reduce((sum,item)=>sum+(evaluate(item.model,date)?.daily ?? 0),0);
+}
+function showPlot(id,points,label,help='',compressed=false) {
+  plots.set(id,{points,compressed});
+  const first = points[0], last = points.at(-1);
+  return '<figure class="plot"><canvas tabindex="0" data-plot="' + id + '" aria-describedby="' + id + '-help" aria-label="' +
+    esc(label + '，' + dateAt(first.date) + '至' + dateAt(last.date) + '，期末' + costLabel(last.value) + '每天') +
+    '"></canvas><output class="plot-output" aria-live="polite" hidden></output><figcaption class="plot-footer" id="' + id + '-help"><span>' +
+    dateAt(first.date) + '</span>' + (help ? '<span class="delta">' + esc(help) + '</span>' : '') +
+    '<span>' + dateAt(last.date) + '</span></figcaption></figure>';
+}
+function contributionCard() {
+  const purchases = active.reduce((sum,{device}) => sum + device.purchasePrice,0);
+  const entries = [
+    {label:'购入支出',amount:purchases},
+    {label:'追加投入',amount:Math.max(0,total-purchases)}
+  ];
+  const largest = Math.max(1,...entries.map(item=>item.amount));
+  return '<section class="card summary-card investment-card"><h2 class="accent-heading">' + icon('wallet') +
+    '持有投入</h2><div class="summary-figure">' + money(total) + '</div><p class="summary-caption">' + active.length +
+    ' 件在用设备的累计投入</p><div class="comparator">' + entries.map(({label,amount}) =>
+      '<div class="comparison"><strong>' + money(amount) + '</strong><div class="comparison-track" aria-hidden="true"><span style="--length:' +
+      amount/largest*100 + '%"></span></div><span>' + label + '</span></div>').join('') + '</div></section>';
+}
+
+function trendCard() {
+  const end=stamp(asOf);
+  const earliest=active.reduce((date,item)=>Math.min(date,item.model.start),end);
+  const periods=[[30,'近 30 天'],[365,'近一年']];
+  return '<section class="card summary-card trend-card"><h2 class="accent-heading">'+icon('stats')+
+    '日均成本变化</h2><div class="summary-figure">'+costLabel(daily)+'<small> / 天</small></div>'+
+    '<p class="summary-caption">当前在用组合的日均成本</p><dl class="cost-deltas">'+periods.map(([days,label])=>{
+      const start=Math.max(earliest,end-days*DAY);
+      const difference=active.length && start<end?moneyChange(daily-portfolioDailyAt(start)):'—';
+      return '<div><dt>'+label+'</dt><dd>'+difference+(difference==='—'?'':'<small> / 天</small>')+'</dd></div>';
+    }).join('')+'</dl></section>';
+}
+
+function deviceStatusCard() {
+  const ordered = [...catalog].sort((a,b)=>{
+    const sortKey = item => active.includes(item) ? 0 : item.device.status === '归档' ? 1 : 2;
+    return sortKey(a)-sortKey(b);
+  });
+  return '<section class="card summary-card status-card"><h2 class="accent-heading">' + icon('layers') +
+    '设备状态</h2><div class="summary-figure">' + catalog.length + '<small> 件</small></div><div class="status-actions summary-caption">' +
+    '<button data-status-link="在用"><span class="status-key"></span>' + active.length + ' 件在用</button>' +
+    '<button data-status-link="归档"><span class="status-key archived-key"></span>' + archived + ' 件归档</button></div>' +
+    (ordered.length ? '<div class="device-matrix" aria-label="设备详情快捷入口">' + ordered.map(item=>{
+      const {device} = item;
+      return '<button class="matrix-icon' + (active.includes(item)?'':' matrix-inactive') + '" data-device="' + esc(device.id) +
+        '" title="' + esc(device.name) + '" aria-label="' + esc(device.name + '，' + statusFor(item)) + '">' +
+        '<span class="matrix-art" aria-hidden="true">' + deviceArt(device) + '</span><span class="matrix-name" translate="no">' +
+        esc(device.name) + '</span></button>';
+    }).join('') + '</div>' : '<p class="empty">暂无设备记录</p>') + '</section>';
+}
+
+function groupByBrand(items) {
+  const groups=new Map();
+  for(const item of items){
+    const key=brandKey(item.device);
+    if(!groups.has(key)) groups.set(key,{key,label:brandLabel(item.device.brand),items:[]});
+    groups.get(key).items.push(item);
+  }
+  return [...groups.values()].sort((a,b)=>Number(!a.key)-Number(!b.key)||a.label.localeCompare(b.label,'zh-CN'));
+}
+function compositionCard() {
+  const byBrand=state.breakdown==='brand';
+  const buckets=byBrand?groupByBrand(active):Object.keys(categories).map(category=>({
+    key:category,label:category,items:active.filter(item=>item.device.category===category)
+  }));
+  const groups=buckets.map(group=>({...group,value:group.items.reduce((sum,item)=>sum+item.point.total,0)}))
+    .filter(group=>group.value>0).sort((a,b)=>b.value-a.value);
+  const max=groups[0]?.value||1;
+  return '<section class="card dashboard-card composition-card"><div class="card-top"><h2 class="accent-heading">'+icon('ring')+
+    '投入分布</h2>'+segment('投入分组','breakdown',[['brand','品牌'],['category','类型']],state.breakdown)+'</div><div class="distribution">'+
+    (groups.length?groups.map(({key,label,value})=>{
+      const share=(value/total*100).toFixed(1)+'%';
+      return '<button class="distribution-row" '+(byBrand?'data-brand-link':'data-category-link')+'="'+esc(key)+
+        '" aria-label="'+esc(label+'，'+money(value)+'，占 '+share+'，查看在用设备')+'"><span>'+esc(label)+
+        '</span><strong>'+money(value)+'</strong><span class="distribution-bar" aria-hidden="true"><span style="--fill:'+
+        value/max*100+'%"></span></span><small>'+share+'</small></button>';
+    }).join(''):'<p class="empty">暂无投入</p>')+'</div></section>';
+}
+
+function rankCard() {
+  const ranking = [...active].sort((a,b)=>b.point.daily-a.point.daily);
+  const maximum = ranking[0]?.point.daily || 1;
+  const annual = state.rank === 'annual';
+  return '<section class="card dashboard-card rank-card"><div class="card-top"><h2 class="accent-heading">' + icon('rank') +
+    '成本排行</h2>' + segment('成本单位','rank',[['daily','日均'],['annual','年均']],state.rank) +
+    '</div><div class="rank-list">' + (ranking.length ? ranking.map(({device,point}) =>
+      '<button class="rank-row" data-device="' + esc(device.id) + '"><span class="rank-name">' + esc(device.name) +
+      '</span><span class="rank-value">' + trackLabel(point,annual) + '<small> / ' + (annual?'年':'天') +
+      '</small></span><span class="rank-bar" aria-hidden="true"><span style="--fill:' + Math.max(0,point.daily/maximum*100) +
+      '%"></span></span></button>').join('') : '<p class="empty">暂无在用设备</p>') + '</div></section>';
+}
+
+function statusFor(item) {
+  const {device,point,model} = item;
+  if (device.status === '归档') return '归档';
+  if (point && model.cutoff < stamp(asOf)) return '已停用';
+  if (!point) return device.purchaseDate ? '尚未购入' : '日期待补充';
+  return '持有';
+}
+function deviceLine(item) {
+  const {device,point} = item;
+  return '<button class="device-line" data-device="' + esc(device.id) + '">' +
+    deviceIcon(device) + '<span class="device-copy"><span class="device-content"><span class="device-name" translate="no">' +
+    esc(device.name) + '</span><span class="device-meta">' + esc([device.brand ? brandLabel(device.brand) : '', device.category, statusFor(item)].filter(Boolean).join(' · ')) +
+    '</span></span><span class="device-trailing"><strong class="device-money">' + trackLabel(point,false) +
+    (point ? '<small> / 天</small>' : '') + '</strong><span class="device-date">' + displayDate(device.purchaseDate) + '</span></span></span></button>';
+}
+
+function recentCard() {
+  const recent=[...catalog].sort((a,b)=>b.device.purchaseDate.localeCompare(a.device.purchaseDate)).slice(0,4);
+  return '<section class="card activity-card"><div class="card-top"><h2 class="activity-title">最近购入</h2>'+
+    '<button class="quiet" data-status-link="全部">查看全部</button></div><div class="card-list">'+
+    (recent.length?recent.map(deviceLine).join(''):'<p class="empty">暂无设备记录</p>')+'</div></section>';
+}
+
+function overview() {
+  const longest=[...active].sort((a,b)=>b.point.days-a.point.days)[0];
+  return heading('设备摘要')+'<section class="card stats-top"><div class="chart-top overview-chart-header"><h2 class="stat-label">'+
+    icon('stats')+'日均成本走势</h2>'+segment('图表模式','chartMode',[['devices','设备对比'],['portfolio','在用组合']],state.chartMode)+
+    '</div><div class="stats-values"><div><span>在用组合日均</span><strong>'+costLabel(daily)+
+    '<small> / 天</small></strong></div><div><span>年均摊销</span><strong>'+money(daily*365)+
+    '<small> / 年</small></strong></div>'+(longest?'<div><span>持有最久 · '+esc(longest.device.name)+
+    '</span><strong>'+integer.format(longest.point.days)+'<small> 天</small></strong></div>':'')+
+    '</div>'+overviewChart()+'<p class="note-text">年均摊销为日均 × 365。</p></section>'+
+    '<div class="analytics-grid">'+rankCard()+'<div class="analytics-sidebar">'+contributionCard()+compositionCard()+trendCard()+'</div></div>'+
+    '<div class="summary-bottom">'+deviceStatusCard()+recentCard()+'</div>';
+}
+
+function optionSet(options,current) {
+  return options.map(([value,label]) => '<option value="' + esc(value) + '"' + (value === current ? ' selected' : '') + '>' + esc(label) + '</option>').join('');
+}
+function collection() {
+  const cats = [['全部','所有类型'],...Object.keys(categories).map(item => [item,item])];
+  const brands = [['*','所有品牌'],...groupByBrand(catalog).map(group=>[group.key,group.label])];
+  return heading('设备清单') +
+    '<div class="toolbar"><div class="controls"><label class="search">' + icon('search') +
+    '<input id="query" type="search" aria-label="搜索设备" name="search" autocomplete="off" placeholder="搜索设备…" value="' + esc(state.query) + '"></label>' +
+    '<select id="status-filter" class="field-control" aria-label="设备状态">' + optionSet([['全部','所有状态'],['在用','在用'],['归档','归档'],['已停用','已停用']],state.status) +
+    '</select><select id="category-filter" class="field-control" aria-label="设备类型">' + optionSet(cats,state.category) +
+    '</select><select id="brand-filter" class="field-control" aria-label="设备品牌">' + optionSet(brands,state.brand) +
+    '</select><select id="sort" class="field-control" aria-label="排序方式">' + optionSet([['date','最近购入'],['daily','日均成本'],['name','设备名称']],state.sort) +
+    '</select></div>' + segment('设备视图','mode',[['list','列表'],['brand','按品牌'],['timeline','时间线']],state.mode) +
+    '</div><p class="result-text" id="result-text" aria-live="polite"></p><div id="results"></div>';
+}
+function syncResults() {
+  const query = state.query.trim().toLowerCase();
+  const items = catalog.filter(item => {
+    const {device} = item;
+    const statusMatch = state.status === '全部' || (state.status === '在用' ? active.includes(item) : statusFor(item) === state.status);
+    return statusMatch && (state.category === '全部' || device.category === state.category) &&
+      (state.brand==='*' || brandKey(device)===state.brand) &&
+      (!query || [device.name,brandLabel(device.brand),device.tags,device.notes,device.channel,device.additionalDetail].join(' ').toLowerCase().includes(query));
+  });
+  items.sort((a,b) => {
+    if (state.sort === 'daily') return (b.point?.daily ?? -Infinity) - (a.point?.daily ?? -Infinity);
+    if (state.sort === 'name') return a.device.name.localeCompare(b.device.name,'zh-CN');
+    return b.device.purchaseDate.localeCompare(a.device.purchaseDate);
+  });
+  document.querySelector('#result-text').textContent = items.length + ' 件设备';
+  document.querySelector('#results').innerHTML = !items.length ? '<div class="card empty">没有符合条件的设备</div>' :
+    state.mode==='timeline'?timeline(items):state.mode==='brand'?
+      '<div class="brand-groups">'+groupByBrand(items).map(group=>
+        '<section class="card device-list brand-group"><h2>'+esc(group.label)+'<span>'+group.items.length+' 件</span></h2>'+
+        group.items.map(deviceLine).join('')+'</section>').join('')+'</div>':
+      '<div class="card device-list">'+items.map(deviceLine).join('')+'</div>';
+}
+
+function timeline(items) {
+  const end = stamp(asOf);
+  const earliest = Math.min(end,...catalog.filter(item => item.point).map(item => item.model.start));
+  const yearStart = Number(iso(earliest).slice(0,4));
+  const yearEnd = Number(asOf.slice(0,4));
+  const start = stamp(yearStart + '-01-01');
+  const percent = date => Math.max(0,Math.min(100,100*(date-start)/Math.max(DAY,end-start)));
+  const step = Math.max(1,Math.ceil((yearEnd-yearStart+1)/6));
+  const years = [];
+  for(let year=yearStart;year<=yearEnd;year+=step) years.push(year);
+  const ticks = years.map(year => [year,percent(stamp(year + '-01-01'))]);
+  const grid = ticks.map(([,left]) => '<span class="track-guide" style="left:' + left + '%"></span>').join('');
+  return '<div class="card timeline"><div class="timeline-axis"><span>使用时间 · 刻度为追加或回收</span><span class="axis-years">' +
+    ticks.map(([year,left]) => '<span style="left:clamp(0px,' + left + '%,calc(100% - 30px))">' + year + '</span>').join('') + '</span><span>日均 / 天</span></div>' +
+    items.map(({device,point,model}) => {
+      const eventDates = !point ? [] : [...new Set(model.events.filter(event => event.kind !== 'purchase')
+        .map(event => Number.isFinite(event.date) ? event.date : point.last).filter(date => date <= end))];
+      const track = point ? '<span class="track-fill" style="left:' + percent(model.start) + '%;width:' +
+        (percent(point.last) - percent(model.start)) + '%"></span>' +
+        eventDates.map(date => '<span class="track-point" style="left:' + percent(date) + '%"></span>').join('') : '';
+      return '<div class="timeline-row"><button class="timeline-label" data-device="' + esc(device.id) + '">' + deviceIcon(device) +
+        '<span><span class="device-name">' + esc(device.name) + '</span><span class="device-meta">' +
+        statusFor({device,point,model}) + ' · ' + displayDate(device.purchaseDate) + '</span></span></button><button class="track" data-device="' +
+        esc(device.id) + '" aria-label="' + esc(device.name + ' ' + statusFor({device,point,model}) + '，查看时间线和支出明细') +
+        '">' + grid + track +
+        '</button><span class="timeline-money">' + trackLabel(point,false) + '</span></div>';
+    }).join('') + '</div>';
+}
+
+function render() {
+  refresh();
+  plotCleanups.forEach(dispose => dispose());
+  plotCleanups = [];
+  plots.clear();
+  const views = {overview,devices:collection};
+  main.innerHTML = views[state.view]();
+  document.title = 'kept · ' + viewNames[state.view];
+  document.querySelector('meta[name=theme-color]').content = document.documentElement.dataset.theme === 'light' ? '#f2f2f7' : '#08090b';
+  if (state.view === 'devices') syncResults();
+  navigation.dataset.current = state.view;
+  navigation.querySelectorAll('[data-nav]').forEach(button => {
+    if (button.dataset.view === state.view) button.setAttribute('aria-current','page');
+    else button.removeAttribute('aria-current');
+  });
+  document.querySelector('#foot-date').textContent = '统计日 ' + displayDate(asOf);
+  mountComparison();
+  if (detailDialog.open) renderDetail();
+}
+
+function mountPlots(container) {
+  container.querySelectorAll('[data-plot]').forEach(canvas => {
+    const {points,compressed} = plots.get(canvas.dataset.plot);
+    const output = canvas.nextElementSibling;
+    const ctx = canvas.getContext('2d');
+    const transform = compressed ? value => Math.asinh(value) : value => value;
+    const untransform = compressed ? value => Math.sinh(value) : value => value;
+    const values = points.map(point => transform(point.value));
+    const min = Math.min(...values), max = Math.max(...values);
+    const pad = Math.max((max-min)*.13,compressed ? .04 : .025);
+    const low = min >= 0 ? Math.max(0,min-pad) : min-pad;
+    const high = max+pad;
+    const interval = (high-low)/4;
+    const order = 10 ** Math.floor(Math.log10(interval));
+    const step = order * [1,2,2.5,5,10].find(value=>value>=interval/order);
+    const ticks = compressed ? Array.from({length:5},(_,i)=>high-i*(high-low)/4) :
+      Array.from({length:5},(_,i)=>(Math.floor((high+step*.01)/step)-i)*step).filter(value=>value>=low-step*.001);
+    let index = -1;
+    let plotRight = 0;
+    const first = points[0].date, duration = Math.max(1,points.at(-1).date-first);
+    const x = i => 7+(plotRight-7)*(points[i].date-first)/duration;
+
+    function draw() {
+      const {width,height} = canvas.getBoundingClientRect();
+      if (!width || !height) return;
+      const ratio = Math.min(devicePixelRatio || 1,3);
+      canvas.width = Math.round(width*ratio);
+      canvas.height = Math.round(height*ratio);
+      ctx.setTransform(ratio,0,0,ratio,0,0);
+      const styles = getComputedStyle(document.documentElement);
+      const accent = styles.getPropertyValue('--cost-color').trim();
+      const top = 15, base = height-13;
+      plotRight = width-45;
+      const y = value => base-(base-top)*(value-low)/(high-low);
+      ctx.font = '11px -apple-system, sans-serif';
+      ctx.textBaseline = 'middle';
+      for (const value of ticks) {
+        const yPos = y(value);
+        ctx.strokeStyle = styles.getPropertyValue('--grid');
+        ctx.lineWidth = 1;
+        ctx.setLineDash([2,4]);
+        ctx.beginPath();
+        ctx.moveTo(7,yPos);
+        ctx.lineTo(plotRight,yPos);
+        ctx.stroke();
+        ctx.fillStyle = styles.getPropertyValue('--sub');
+        const tick = untransform(value);
+        const digits = compressed ? (Math.abs(tick) < 8 ? 1 : 0) : Number.isInteger(step) ? 0 : step >= .1 ? 1 : 2;
+        ctx.fillText(Math.abs(tick)>=1000 ? (tick/1000).toFixed(1)+'k' : tick.toFixed(digits),plotRight+8,yPos);
+      }
+      ctx.strokeStyle=styles.getPropertyValue('--grid');
+      ctx.lineWidth=1;
+      ctx.beginPath();
+      ctx.moveTo(7,base);
+      ctx.lineTo(plotRight,base);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      function trace() {
+        ctx.beginPath();
+        ctx.moveTo(x(0),y(values[0]));
+        for(let i=1;i<values.length;i++) ctx.lineTo(x(i),y(values[i]));
+      }
+      trace();
+      ctx.strokeStyle=accent;
+      ctx.lineWidth=2.2;
+      ctx.lineJoin='round';
+      ctx.stroke();
+      const marker = index < 0 ? values.length-1 : index;
+      const cx=x(marker),cy=y(values[marker]);
+      if(index >= 0) {
+        ctx.strokeStyle=styles.getPropertyValue('--sub');
+        ctx.lineWidth=1;
+        ctx.beginPath();
+        ctx.moveTo(cx,top);
+        ctx.lineTo(cx,base);
+        ctx.stroke();
+      }
+      ctx.fillStyle=styles.getPropertyValue('--surface');
+      ctx.beginPath();
+      ctx.arc(cx,cy,6,0,2*Math.PI);
+      ctx.fill();
+      ctx.fillStyle=accent;
+      ctx.beginPath();
+      ctx.arc(cx,cy,3.8,0,2*Math.PI);
+      ctx.fill();
+      output.hidden = index < 0;
+      if(index >= 0) {
+        output.textContent=dateAt(points[index].date)+' · '+costLabel(points[index].value)+' / 天';
+        output.style.left=Math.max(2,Math.min(width-output.offsetWidth-2,cx-output.offsetWidth/2))+'px';
+      }
+    }
+
+    function pointFromPointer(event) {
+      const relative = event.clientX-canvas.getBoundingClientRect().left;
+      const target = first + duration*(relative-7)/Math.max(1,plotRight-7);
+      const nearest = points.reduce((best,point,i) => Math.abs(point.date-target) < Math.abs(points[best].date-target) ? i : best,0);
+      if (index === nearest) return;
+      index = nearest;
+      draw();
+    }
+    canvas.addEventListener('pointermove',pointFromPointer);
+    canvas.addEventListener('pointerdown',pointFromPointer);
+    canvas.addEventListener('pointerleave',() => {index=-1;draw()});
+    canvas.addEventListener('focus',() => {index=points.length-1;draw()});
+    canvas.addEventListener('blur',() => {index=-1;draw()});
+    canvas.addEventListener('keydown',event => {
+      const moves = {ArrowLeft:index-1,ArrowRight:index+1,Home:0,End:points.length-1};
+      if (!Object.hasOwn(moves,event.key)) return;
+      event.preventDefault();
+      index=Math.min(points.length-1,Math.max(0,moves[event.key]));
+      draw();
+    });
+    const observer=new ResizeObserver(draw);
+    observer.observe(canvas);
+    plotCleanups.push(() => observer.disconnect());
+    draw();
+  });
+}
+
+const closeButton = dialog => '<button class="icon-button" data-close="'+dialog+'" aria-label="关闭">'+icon('close')+'</button>';
+let detailPlotCleanup;
+function clearDetailPlot() {
+  if (!detailPlotCleanup) return;
+  detailPlotCleanup();
+  plotCleanups = plotCleanups.filter(dispose => dispose !== detailPlotCleanup);
+  detailPlotCleanup = null;
+}
+function renderDetail() {
+  clearDetailPlot();
+  const item = catalog.find(({device}) => device.id === state.detailId);
+  if (!item) {detailDialog.close();return}
+  const {device,point,model} = item;
+  const metrics = point ? '<div class="detail-metrics"><div><span>净投入</span><strong>'+money(point.total)+
+    '</strong></div><div><span>日均成本</span><strong class="detail-daily">'+costLabel(point.daily)+' <small>/ 天</small></strong></div><div><span>使用天数</span><strong>'+
+    integer.format(point.days)+' <small>天</small></strong></div></div>' : '';
+  const events = point ? model.events.map(event => ({...event,date:Number.isFinite(event.date) ? event.date : point.last}))
+    .filter(event => event.date <= stamp(asOf) && (event.amount || event.kind === 'purchase')).sort((a,b) => a.date-b.date) : [];
+  const notes = model?.notes || [];
+  const curve = point ? detailCurve(model,point,events) : '<p class="note-text">该统计日没有可绘制的成本记录。</p>';
+  const metadata = [['品牌',device.brand && brandLabel(device.brand)],['购入日期',device.purchaseDate],['购买渠道',device.channel],['保修截止',device.warrantyEnd],['标签',device.tags],
+    ['停用日期',device.usageEnd],['回收日期',device.archivedDate],['回收方式',device.archivedWay],['备注',device.notes,true],
+    ['原始追加投入明细',device.additionalDetail,true],['归档感想',device.archivedThought,true],['照片链接',device.photo,true]];
+  const now = stamp(asOf);
+  const forecastDays = Math.max(1,Math.round((Math.min(now+365*DAY,Number.isFinite(model?.cutoff)? model.cutoff : Infinity)-(model?.start ?? now))/DAY));
+  const prediction = point && statusFor(item) === '持有' ? '<p class="note-text">若净投入不再变化，一年后的日均成本约为 '+
+    costLabel(point.total/forecastDays)+' / 天。</p>' : '';
+  const target = device.targetDaily > 0 && point ? '<p class="note-text">个人日均目标 '+money(device.targetDaily)+
+    ' / 天 · '+(point.daily <= device.targetDaily ? '已达标' : '当前高于目标 '+money(point.daily-device.targetDaily)+' / 天')+'</p>' : '';
+  detailDialog.innerHTML='<header class="modal-top"><div class="modal-title">'+deviceIcon(device)+'<div><h2 id="detail-title">'+esc(device.name)+
+    '</h2><p>'+device.category+' · '+statusFor(item)+'</p></div></div>'+closeButton('detail')+'</header><div class="modal-body">'+metrics+
+    '<section class="card device-cost"><div class="chart-top"><h3>日均成本</h3>'+segment('设备成本区间','detailRange',[['year','近一年'],['life','完整周期']],state.detailRange)+'</div>'+
+    curve+prediction+target+'</section><section class="card"><h3>支出记录</h3>'+(events.length ? events.map(event =>
+      '<div class="event"><span>'+esc(event.name)+'<small>'+dateAt(event.date)+'</small></span><strong>'+money(event.amount)+'</strong></div>').join('') :
+      '<p class="note-text">该统计日暂无支出记录</p>')+(notes.length ? '<p class="note-text">'+esc(notes.join('。'))+'</p>' : '')+
+    '</section><section class="card"><h3>设备档案</h3><dl class="meta-grid">'+metadata.filter(([label,value]) => value || label === '购入日期')
+    .map(([label,value,wide])=>'<div'+(wide?' class="wide"':'')+'><dt>'+label+'</dt><dd>'+esc(value || '待补充')+'</dd></div>').join('')+
+    '</dl></section><div class="modal-actions"><button class="quiet danger" data-command="delete">删除设备</button><button class="secondary" data-command="edit">编辑设备</button></div></div>';
+  mountPlots(detailDialog);
+  if (point) detailPlotCleanup = plotCleanups.at(-1);
+}
+
+function detailCurve(model,point,events) {
+  const end = Math.max(point.last,...events.map(event => event.date));
+  const start = state.detailRange === 'year' ? Math.max(model.start,end-365*DAY) : model.start;
+  const span = Math.round((end-start)/DAY);
+  const stride = Math.max(1,Math.ceil(span/255));
+  const dates = new Set(events.map(event => event.date).filter(date => date >= start));
+  for(let offset=0;offset<span;offset+=stride) dates.add(start+offset*DAY);
+  dates.add(end);
+  const points=[...dates].sort((a,b)=>a-b).map(date=>({date,value:evaluate(model,date).daily}));
+  const ratio = Math.max(...points.map(sample => Math.abs(sample.value))) / Math.max(.05,Math.abs(point.daily));
+  const compressed = ratio > 45;
+  return showPlot('detail-chart',points,'设备日均成本',compressed ? '纵轴为压缩刻度' : '',compressed);
+}
+
+function openDetail(id) {
+  state.detailId=id;
+  state.detailRange='year';
+  renderDetail();
+  if (!detailDialog.open) detailDialog.showModal();
+  detailDialog.scrollTop=0;
+}
+
+function showNotice(message,canUndo=false) {
+  clearTimeout(noticeTimer);
+  notice.firstElementChild.textContent=message;
+  notice.lastElementChild.hidden=!canUndo;
+  notice.hidden=false;
+  noticeTimer=setTimeout(() => {notice.hidden=true},canUndo ? 9500 : 4100);
+}
+
+function saveRecords(next,message) {
+  try {
+    localStorage.setItem(STORAGE,encodeArchive(next));
+  } catch {
+    return '无法保存到浏览器，请检查本地存储空间或权限。';
+  }
+  previous = devices;
+  devices = next;
+  render();
+  showNotice(message,true);
+  return '';
+}
+
+function showPanel(title,body) {
+  panel.innerHTML='<header class="modal-top"><h2 id="panel-title">'+title+'</h2>'+closeButton('panel')+'</header><div class="modal-body">'+body+'</div>';
+  if (!panel.open) panel.showModal();
+  else panel.querySelector('button').focus();
+  panel.scrollTop=0;
+}
+const errorText = '<p class="error" role="alert" id="panel-error" hidden></p>';
+function setError(message) {
+  const error=panel.querySelector('#panel-error');
+  error.textContent=message;
+  error.hidden=!message;
+}
+const dateBounds = ' min="1900-01-01" max="2200-12-31"';
+function settings() {
+  const theme = document.documentElement.dataset.theme;
+  showPanel('账本设置','<div class="setting-row"><span>外观</span>'+segment('配色主题','theme',[['dark','深色'],['light','浅色']],theme)+
+    '</div><form id="date-form"><label class="date-field">统计截止日<input class="field-control" type="date" name="date" required'+dateBounds+' value="'+asOf+'"></label>'+
+    '<div class="modal-actions"><button type="button" class="quiet" data-command="reset-date">恢复默认统计日</button><button class="secondary">应用日期</button></div></form>'+
+    '<div class="setting-row"><span>设备数据</span><div class="controls"><button class="quiet" data-command="import">导入 CSV</button>'+
+    '<button class="quiet" data-command="export">导出 CSV</button></div></div><p class="note-text">本地编辑保存在当前浏览器。</p>'+errorText);
+}
+function formField(label,key,record,type='text',options={}) {
+  const attributes=(options.required?' required':'')+(type==='date'?dateBounds:'')+(type==='number'?' min="0" step="any"':'')+(options.list?' list="'+options.list+'"':'');
+  const value=record[key] ?? '';
+  const control = type==='textarea' ? '<textarea class="field-control" name="'+key+'">'+esc(value)+'</textarea>' :
+    '<input class="field-control" name="'+key+'" type="'+type+'"'+attributes+' value="'+esc(value)+'">';
+  return '<label'+(options.wide?' class="wide"':'')+'>'+label+control+'</label>';
+}
+function editor(record) {
+  const existing=Boolean(record);
+  const d=record || blankDevice();
+  const field=(label,key,type,options)=>formField(label,key,d,type,options);
+  const options=Object.keys(categories).map(key=>[key,key]);
+  showPanel(existing?'编辑设备':'添加设备','<form id="edit-form"><div class="form-grid">'+field('设备名称','name','text',{wide:true,required:true})+
+    '<label>状态<select name="status" class="field-control">'+optionSet([['持有','持有'],['归档','归档']],d.status)+'</select></label>'+
+    '<label>类型<select name="category" class="field-control">'+optionSet(options,d.category)+'</select></label>'+
+    field('品牌','brand','text',{wide:true,list:'brand-options'})+'<datalist id="brand-options">'+
+    [...new Set(['Apple','DJI',...devices.map(device=>device.brand).filter(Boolean)])].map(brand=>
+      '<option value="'+esc(brand)+'">'+esc(brandLabel(brand))+'</option>').join('')+'</datalist>'+
+    field('购入价格（元）','purchasePrice','number',{required:true})+field('购入日期','purchaseDate','date')+field('购买渠道','channel')+
+    field('保修截止','warrantyEnd','date')+field('标签','tags','text',{wide:true})+
+    '<details><summary>追加投入与个人目标</summary><div class="form-grid">'+field('追加投入总额（元）','additional','number')+
+    field('个人日均目标（元）','targetDaily','number')+field('追加投入明细','additionalDetail','textarea',{wide:true})+
+    '</div><p class="note-text">有日期的追加明细可写为 AppleCare+：¥348.00 (2026-04-06)。多笔用分号分隔。</p></details>'+
+    '<details><summary>停用与归档</summary><div class="form-grid">'+field('停用日期','usageEnd','date')+field('回收价格（元）','archivedPrice','number')+
+    field('回收日期','archivedDate','date')+field('回收方式','archivedWay')+field('归档感想','archivedThought','textarea',{wide:true})+'</div></details>'+
+    '<details><summary>备注与照片</summary><div class="form-grid">'+field('备注','notes','textarea',{wide:true})+
+    field('照片链接','photo','text',{wide:true})+'</div></details></div>'+errorText+
+    '<div class="modal-actions"><button type="button" class="secondary" data-close="panel">取消</button><button class="primary">保存设备</button></div></form>');
+  panel.querySelector('#edit-form').addEventListener('submit',event=>{
+    event.preventDefault();
+    const form=new FormData(event.currentTarget);
+    const edited={...d,...Object.fromEntries(form)};
+    edited.name=edited.name.trim();
+    edited.photo=edited.photo.trim();
+    edited.brand=normalizeBrand(edited.brand,edited.name);
+    amounts.forEach(key=>edited[key]=Number(edited[key]));
+    edited.targetDaily=edited.targetDaily ? Number(edited.targetDaily) : '';
+    const error=validate(edited);
+    if (error) {setError(error);return}
+    const failure=saveRecords(existing?devices.map(item=>item.id===d.id?edited:item):[...devices,edited],existing?'设备已更新':'设备已添加');
+    if (failure) {setError(failure);return}
+    panel.close();
+    if(!existing) {changeView('devices',true);openDetail(edited.id)}
+  });
+}
+function deleteDevice() {
+  const d=devices.find(device=>device.id===state.detailId);
+  if(!d) return;
+  showPanel('删除设备','<p>删除 '+esc(d.name)+' 及其支出记录？</p>'+errorText+
+    '<div class="modal-actions"><button class="secondary" data-close="panel">取消</button><button class="secondary danger" data-command="confirm-delete">删除</button></div>');
+}
+function download() {
+  const url=URL.createObjectURL(new Blob([exportCsv(devices)],{type:'text/csv;charset=utf-8'}));
+  const anchor=document.createElement('a');
+  anchor.href=url;
+  anchor.download='kept-设备账本-'+asOf+'.csv';
+  anchor.click();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+function importPanel() {
+  showPanel('导入设备','<form id="import-form"><label class="date-field">CSV 文件<input class="field-control" type="file" name="csv" required accept=".csv,text/csv"></label>'+
+    '<label class="date-field">导入方式<select class="field-control" name="mode"><option value="merge">按 ID 合并</option>'+
+    '<option value="replace">替换全部设备</option></select></label><p class="note-text">可导入原站或本预览导出的 CSV。</p>'+
+    errorText+'<div class="modal-actions"><button class="primary">校验并预览</button></div></form>');
+  panel.querySelector('#import-form').addEventListener('submit',async event=>{
+    event.preventDefault();
+    const form=event.currentTarget;
+    const values=new FormData(form);
+    const button=form.querySelector('button');
+    button.disabled=true;
+    try {
+      const records=importCsv(await values.get('csv').text());
+      if (!panel.open || !form.isConnected) return;
+      const replace=values.get('mode')==='replace';
+      const next=replace?records:[...new Map([...devices,...records].map(item=>[item.id,item])).values()];
+      showPanel('确认导入','<p>已通过校验，共 '+records.length+' 件设备。</p><p class="note-text">'+
+        (replace?'将替换当前全部记录':'同 ID 记录将更新，新 ID 记录将新增')+'。导入后共 '+next.length+' 件设备。</p>'+errorText+
+        '<div class="modal-actions"><button class="secondary" data-command="import">返回</button><button id="apply-import" class="primary">导入设备</button></div>');
+      panel.querySelector('#apply-import').onclick=()=>{
+        const error=saveRecords(next,'已导入 '+records.length+' 件设备');
+        if (error) setError(error);
+        else {panel.close();changeView('devices',true)}
+      };
+    } catch(error) {
+      if (form.isConnected && panel.open) setError(error.message);
+    } finally {
+      button.disabled=false;
+    }
+  });
+}
+
+function changeView(view,reset=false) {
+  if (reset) Object.assign(state,{query:'',status:'全部',category:'全部',brand:'*'});
+  state.view=view;
+  if (viewFromURL() !== view) history.pushState(null,'','#'+view);
+  render();
+  window.scrollTo(0,0);
+  main.focus({preventScroll:true});
+}
+function setDate(value) {
+  if (!validDate(value)) {setError('请选择有效的统计截止日');return}
+  asOf=value;
+  panel.close();
+  render();
+  showNotice('统计日已更新');
+}
+function updateControl(button,restoreFocus) {
+  const {action,value}=button.dataset;
+  if (action === 'theme') {
+    document.documentElement.dataset.theme=value;
+    try {localStorage.setItem(THEME,value)} catch {showNotice('外观仅在本次打开时生效')}
+    render();
+    settings();
+    panel.querySelector('[data-action="theme"][data-value="'+value+'"]').focus();
+    return;
+  }
+  if(action==='overviewRange' && state.overviewRange!==value) state.chartMetric=value==='30'?'change':'amount';
+  state[action]=value;
+  if (action==='detailRange') renderDetail();
+  else render();
+  if (restoreFocus) (action==='detailRange'?detailDialog:main).querySelector('[data-action="'+action+'"][data-value="'+value+'"]')?.focus({preventScroll:true});
+}
+document.addEventListener('click',event=>{
+  const link=event.target.closest('a[data-view]');
+  if (link && event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
+    event.preventDefault();
+    changeView(link.dataset.view);
+    return;
+  }
+  const button=event.target.closest('button');
+  if(!button) return;
+  const {device,command,action,close,statusLink,categoryLink,brandLink}=button.dataset;
+  if(device) {openDetail(device);return}
+  if(action) {updateControl(button,event.detail===0);return}
+  if(close) {document.querySelector('#'+close).close();return}
+  if(statusLink || categoryLink || brandLink!==undefined) {
+    Object.assign(state,{query:'',status:statusLink||'在用',category:categoryLink||'全部',brand:brandLink??'*'});
+    changeView('devices');
+    return;
+  }
+  switch(command) {
+    case 'settings': settings();break;
+    case 'add': editor();break;
+    case 'edit': editor(devices.find(item=>item.id===state.detailId));break;
+    case 'delete': deleteDevice();break;
+    case 'confirm-delete': {
+      const error=saveRecords(devices.filter(item=>item.id!==state.detailId),'设备已删除');
+      if(error) setError(error);
+      else panel.close();
+      break;
+    }
+    case 'reset-date': setDate(SNAPSHOT);break;
+    case 'import': importPanel();break;
+    case 'export': download();break;
+    case 'undo': {
+      if(!previous) break;
+      const error=saveRecords(previous,'操作已撤销');
+      if(error) showNotice(error,true);
+      else {previous=null;showNotice('操作已撤销')}
+      break;
+    }
+  }
+});
+function redirectOldStatistics() {
+  if(location.hash==='#stats') history.replaceState(null,'','#overview');
+}
+window.addEventListener('hashchange',()=>{
+  redirectOldStatistics();
+  const view=viewFromURL();
+  if(state.view!==view) changeView(view);
+});
+document.addEventListener('input',event=>{
+  if (event.target.id==='query') {state.query=event.target.value;syncResults()}
+});
+document.addEventListener('change',event=>{
+  const key={'status-filter':'status','category-filter':'category','brand-filter':'brand',sort:'sort'}[event.target.id];
+  if(key) {state[key]=event.target.value;syncResults()}
+});
+document.addEventListener('submit',event=>{
+  if(event.target.id==='date-form') {
+    event.preventDefault();
+    setDate(new FormData(event.target).get('date'));
+  }
+});
+detailDialog.addEventListener('close',clearDetailPlot);
+for (const dialog of [detailDialog,panel]) {
+  dialog.addEventListener('click',event=>{
+    if(event.target!==dialog) return;
+    const bounds=dialog.getBoundingClientRect();
+    if(event.clientX<bounds.left || event.clientX>bounds.right || event.clientY<bounds.top || event.clientY>bounds.bottom)
+      dialog.close();
+  });
+}
+document.querySelectorAll('[data-icon]').forEach(element=>element.innerHTML=icon(element.dataset.icon));
+const reducedTransparency = matchMedia('(prefers-reduced-transparency: reduce)');
+const lenses = [
+  glassLens(navigation,{rim:12,edge:.82,power:2.6,dispersion:.06,enabled:!reducedTransparency.matches}),
+  glassLens(topBar.querySelector('.top-actions'),{rim:8,edge:.65,power:2.6,dispersion:0,enabled:!reducedTransparency.matches})
+];
+reducedTransparency.addEventListener('change',event=>{
+  lenses.forEach(lens=>lens.update({enabled:!event.matches}));
+});
+const updateScrollEdge = () => topBar.toggleAttribute('data-scrolled',scrollY > 12);
+window.addEventListener('scroll',updateScrollEdge,{passive:true});
+updateScrollEdge();
+redirectOldStatistics();
+render();
+if(storedReadError) showNotice('无法读取本地存档，已载入设备快照');
+else if(storedUpgradeError) showNotice('设备已加载，但无法保存更新后的本地存档');
+</script>
+</body>
 </html>
